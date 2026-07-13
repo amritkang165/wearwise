@@ -234,8 +234,8 @@ docs/
 
 Installed:
 
-- Node.js
-- pnpm
+- Node.js (v24.14.1)
+- pnpm (v11.10.0)
 
 Learned:
 
@@ -283,6 +283,14 @@ Selected:
 - Radix
 - Nova preset
 
+Components added (manual — registry unreachable):
+
+- Button
+- Input
+- Label
+- Card
+- Separator
+
 Learned:
 
 - shadcn generates source code
@@ -302,7 +310,7 @@ Created manually.
 Installed:
 
 ```bash
-pnpm add prisma @prisma/client
+pnpm add prisma @prisma/client @prisma/adapter-pg pg dotenv
 ```
 
 Resolved build approval issues:
@@ -353,6 +361,7 @@ Learned:
 - Singleton Pattern
 - Hot Reload issue
 - Why Prisma 7 requires adapters
+- Prisma 7 breaking changes (generate not auto-run after migrate)
 
 ---
 
@@ -368,13 +377,13 @@ DATABASE_URL
 
 Successfully connected Prisma to Neon.
 
-Verified using:
+First migration applied:
 
 ```bash
-pnpm prisma db pull
+pnpm prisma migrate dev --name init
 ```
 
-Database is empty, which is expected.
+4 tables created: user, session, account, verification
 
 ---
 
@@ -417,59 +426,78 @@ BETTER_AUTH_URL="http://localhost:3000"
 Created:
 
 ```
-lib/auth.ts
+lib/auth/auth.ts
 ```
 
-Configured:
+Generated auth schema:
 
-- Better Auth
-- Prisma Adapter
-- Email & Password Authentication
+```bash
+npx auth@latest generate
+```
+
+Models generated: User, Session, Account, Verification
+
+Created API route:
+
+```
+app/api/auth/[...all]/route.ts
+```
+
+Created client:
+
+```
+lib/auth-client.ts
+```
+
+---
+
+## ✅ Theme
+
+Custom rich dark theme configured in `globals.css`.
+
+Design direction:
+
+- Rich dark (deep blacks with warm tint)
+- Warm amber accent (primary color)
+- Apple Health warmth meets bold modern aesthetic
+
+---
+
+## ✅ Auth UI
+
+Split layout auth pages built.
+
+Layout: `app/(auth)/layout.tsx`
+
+- Left panel: Brand area with dark gradient, grid pattern, amber glow
+- Right panel: Clean form area
+- Mobile: Brand collapses to header
+
+Sign-In: `app/(auth)/sign-in/page.tsx`
+
+- Email + password form
+- Show/hide password toggle
+- Error handling, loading states
+
+Sign-Up: `app/(auth)/sign-up/page.tsx`
+
+- Name + email + password form
+- Live password validation
+- Error handling, loading states
 
 ---
 
 # Current Blocker
 
-Running:
+None. Auth flow is ready to test.
 
-```bash
-npx auth@latest generate
-```
+Next steps:
 
-fails with:
-
-```
-Cannot find module 'dotenv/config'
-```
-
-Reason:
-
-`lib/prisma/client.ts` imports:
-
-```ts
-import "dotenv/config";
-```
-
-but `dotenv` is not installed.
-
-Next step:
-
-```bash
-pnpm add dotenv
-```
-
-Then retry:
-
-```bash
-npx auth@latest generate
-```
-
-After generation:
-
-- Review generated Prisma models
-- Run Prisma migration
-- Generate Prisma Client
-- Open Prisma Studio
+1. Create a test user via `/sign-up`
+2. Sign in via `/sign-in`
+3. Verify session is created
+4. Build dashboard layout
+5. Add middleware to protect dashboard routes
 
 ---
 
@@ -499,6 +527,7 @@ After generation:
 ## Dev Dependencies
 
 - @better-auth/cli
+- dotenv
 - typescript
 - eslint
 - eslint-config-next
@@ -530,6 +559,11 @@ After generation:
 - Better Auth architecture
 - Better Auth adapters
 - CLI vs Runtime dependencies
+- Prisma 7 breaking changes
+- Better Auth client API (signIn, signUp, signOut, useSession)
+- Dark theme design (oklch color space)
+- Hydration warnings (suppressHydrationWarning)
+- Split layout auth design
 
 ---
 
@@ -543,22 +577,23 @@ After generation:
 - ✅ Connect Prisma
 - ✅ Generate Prisma Client
 - ✅ Configure Prisma Driver Adapter
-- ⏳ Generate Better Auth Schema
-- ⏳ First Migration
-- ⏳ Prisma Studio
+- ✅ Generate Better Auth Schema
+- ✅ First Migration
+- ✅ Theme + Auth UI
 
 ---
 
 ## Phase 2 — Authentication
 
-- Better Auth
-- Sessions
-- Register
-- Login
-- Logout
-- Password Reset
-- Email Verification
-- Google OAuth
+- ✅ Better Auth
+- ✅ Sessions
+- ✅ Register
+- ✅ Login
+- ⏳ Logout
+- ⏳ Password Reset
+- ⏳ Email Verification
+- ⏳ Google OAuth
+- ⏳ Middleware (protect routes)
 
 ---
 
