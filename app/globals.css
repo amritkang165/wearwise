@@ -11,58 +11,83 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
 
-  /* --- garment-domain palette --- */
-  --color-ink: #2c0703;
-  --color-crimson: #890620;
-  --color-rose: #b6465f;
-  --color-dust: #da9f93;
-  --color-linen: #ebd4cb;
+  /* --- garment-domain palette (values come from CSS vars below) --- */
+  --color-ink: var(--ink);
+  --color-crimson: var(--crimson);
+  --color-rose: var(--rose);
+  --color-dust: var(--dust);
+  --color-linen: var(--linen);
 
   /* --- derived neutrals --- */
-  --color-paper: #ffffff;
-  --color-canvas: #fdf9f7;
-  --color-seam: #f1e4de;
-  --color-ash: #8a7a75;
+  --color-paper: var(--paper);
+  --color-canvas: var(--canvas);
+  --color-seam: var(--seam);
+  --color-ash: var(--ash);
 
   /* --- label type --- */
   --font-label: "Geist Mono", ui-monospace, "SF Mono", monospace;
 
   /* --- shadcn compat tokens --- */
-  --color-sidebar-ring: var(--color-rose);
-  --color-sidebar-border: var(--color-linen);
-  --color-sidebar-accent-foreground: var(--color-ink);
-  --color-sidebar-accent: var(--color-canvas);
-  --color-sidebar-primary-foreground: var(--color-paper);
-  --color-sidebar-primary: var(--color-rose);
-  --color-sidebar-foreground: var(--color-ink);
-  --color-sidebar: var(--color-canvas);
-  --color-chart-5: var(--color-ink);
-  --color-chart-4: var(--color-crimson);
-  --color-chart-3: var(--color-dust);
-  --color-chart-2: var(--color-rose);
-  --color-chart-1: var(--color-crimson);
-  --color-ring: var(--color-rose);
-  --color-input: var(--color-linen);
-  --color-border: var(--color-linen);
-  --color-destructive: var(--color-crimson);
-  --color-accent-foreground: var(--color-ink);
-  --color-accent: var(--color-canvas);
-  --color-muted-foreground: var(--color-ash);
-  --color-muted: var(--color-seam);
-  --color-secondary-foreground: var(--color-ink);
-  --color-secondary: var(--color-linen);
-  --color-primary-foreground: var(--color-paper);
-  --color-primary: var(--color-rose);
-  --color-popover-foreground: var(--color-ink);
-  --color-popover: var(--color-paper);
-  --color-card-foreground: var(--color-ink);
-  --color-card: var(--color-paper);
+  --color-sidebar-ring: var(--rose);
+  --color-sidebar-border: var(--linen);
+  --color-sidebar-accent-foreground: var(--ink);
+  --color-sidebar-accent: var(--canvas);
+  --color-sidebar-primary-foreground: var(--paper);
+  --color-sidebar-primary: var(--rose);
+  --color-sidebar-foreground: var(--ink);
+  --color-sidebar: var(--canvas);
+  --color-chart-5: var(--ink);
+  --color-chart-4: var(--crimson);
+  --color-chart-3: var(--dust);
+  --color-chart-2: var(--rose);
+  --color-chart-1: var(--crimson);
+  --color-ring: var(--rose);
+  --color-input: var(--linen);
+  --color-border: var(--linen);
+  --color-destructive: var(--crimson);
+  --color-accent-foreground: var(--ink);
+  --color-accent: var(--canvas);
+  --color-muted-foreground: var(--ash);
+  --color-muted: var(--seam);
+  --color-secondary-foreground: var(--ink);
+  --color-secondary: var(--linen);
+  --color-primary-foreground: var(--paper);
+  --color-primary: var(--rose);
+  --color-popover-foreground: var(--ink);
+  --color-popover: var(--paper);
+  --color-card-foreground: var(--ink);
+  --color-card: var(--paper);
   --radius: 0.625rem;
 }
 
+/* --- Light mode (default) --- */
 :root {
+  --ink: #2c0703;
+  --crimson: #890620;
+  --rose: #b6465f;
+  --dust: #da9f93;
+  --linen: #ebd4cb;
+  --paper: #ffffff;
+  --canvas: #fdf9f7;
+  --seam: #f1e4de;
+  --ash: #8a7a75;
   --background: #ffffff;
   --foreground: #2c0703;
+}
+
+/* --- Dark mode --- */
+.dark {
+  --ink: #f0e6e0;
+  --crimson: #e04060;
+  --rose: #d98a9e;
+  --dust: #e8c0b5;
+  --linen: #2a201c;
+  --paper: #1a1412;
+  --canvas: #140f0d;
+  --seam: #231c19;
+  --ash: #9a8a84;
+  --background: #1a1412;
+  --foreground: #f0e6e0;
 }
 
 @layer base {

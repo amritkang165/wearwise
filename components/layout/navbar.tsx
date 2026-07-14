@@ -2,6 +2,7 @@
 
 import { Menu } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
+import { ThemeToggle } from "./theme-toggle";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -14,12 +15,13 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-linen bg-paper px-5 lg:px-6">
       <button
         onClick={onMenuClick}
-        className="flex size-8 items-center justify-center rounded-[8px] text-ash hover:text-ink lg:hidden"
+        className="flex size-8 items-center justify-center rounded-[8px] text-ash hover:text-ink hover:bg-canvas lg:hidden"
       >
         <Menu className="size-5" />
       </button>
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2">
+        <ThemeToggle />
         <span className="text-[13px] text-ash">
           {session?.user?.name ?? ""}
         </span>
