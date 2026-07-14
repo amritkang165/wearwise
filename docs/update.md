@@ -58,12 +58,13 @@ The assistant should continue teaching in this exact style.
 
 ## Frontend
 
-- Next.js 16 (App Router)
+- Next.js 16 (App Router, Turbopack)
 - React 19
 - TypeScript
 - Tailwind CSS v4
-- shadcn/ui
+- shadcn/ui (Radix + Nova)
 - Lucide React
+- Geist Sans + Geist Mono
 
 Planned:
 
@@ -77,10 +78,10 @@ Planned:
 
 ## Backend
 
-- Next.js Route Handlers
+- Next.js Server Components
 - Server Actions
 - Prisma ORM 7
-- Better Auth
+- Better Auth (email/password)
 - Argon2 (preferred over bcrypt)
 - Sharp
 
@@ -89,6 +90,44 @@ Planned:
 ## Database
 
 - Neon PostgreSQL
+
+---
+
+## Design System
+
+Garment-domain token system. Airbnb-clean aesthetic.
+
+### Palette
+
+| Token | Hex | Role |
+|---|---|---|
+| `ink` | `#2c0703` | Body copy, headings |
+| `crimson` | `#890620` | Pressed/active states, links |
+| `rose` | `#b6465f` | Primary accent, CTA buttons |
+| `dust` | `#da9f93` | Secondary accent, icons, avatar ring |
+| `linen` | `#ebd4cb` | Borders, sidebar wash, tag stitching |
+| `paper` | `#ffffff` | Page background |
+| `canvas` | `#fdf9f7` | Sidebar/recessed panel background |
+| `seam` | `#f1e4de` | Hairline dividers |
+| `ash` | `#8a7a75` | Muted secondary text |
+
+### Typography
+
+- `--font-sans`: Geist Sans (body, headings)
+- `--font-label`: Geist Mono (woven-label uppercase captions — stat labels, categories, dates)
+
+### Shape
+
+- `--radius-card`: 10px
+- `--radius-pill`: 999px
+
+### Design Principles
+
+- White backgrounds, warm accent, generous whitespace
+- No gradient blobs, no glow shadows, no dark mode
+- Typography-driven hierarchy
+- Domain-specific naming (seam, tape, tag, linen, dust)
+- Garment metaphor throughout (hang-tags, closet rod, tape measure, stitched borders)
 
 ---
 
@@ -176,26 +215,59 @@ PostHog
 
 ```text
 app/
-
-actions/
+├── (auth)/
+│   ├── layout.tsx
+│   ├── sign-in/page.tsx
+│   └── sign-up/page.tsx
+├── (dashboard)/
+│   ├── layout.tsx
+│   ├── dashboard/
+│   │   ├── page.tsx
+│   │   ├── loading.tsx
+│   │   └── error.tsx
+│   ├── wardrobe/page.tsx
+│   ├── outfits/page.tsx
+│   ├── calendar/page.tsx
+│   └── analytics/page.tsx
+├── api/auth/[...all]/route.ts
+├── globals.css
+├── layout.tsx
+└── page.tsx
 
 components/
+├── dashboard/
+│   ├── StatTag.tsx
+│   ├── TapeProgress.tsx
+│   ├── GettingStarted.tsx
+│   ├── ActivityRail.tsx
+│   └── QuickAddButton.tsx
 ├── layout/
-├── outfit/
-├── shared/
+│   ├── sidebar.tsx
+│   └── navbar.tsx
 ├── ui/
-└── wardrobe/
+│   ├── button.tsx
+│   ├── input.tsx
+│   ├── label.tsx
+│   ├── card.tsx
+│   └── separator.tsx
+├── wardrobe/
+├── outfit/
+└── shared/
 
 docs/
 ├── Bible.md
 ├── PRD.md
-└── TechReq.md
+├── TechReq.md
+├── changelog.md
+└── update.md
 
 hooks/
-
 lib/
 ├── auth/
 │   └── auth.ts
+├── auth.ts                (server-side session helper)
+├── auth-client.ts
+├── dashboard-data.ts
 ├── cloudinary/
 ├── gemini/
 ├── generated/
@@ -206,24 +278,13 @@ lib/
 
 prisma/
 ├── schema.prisma
-└── prisma.config.ts
+├── prisma.config.ts
+└── migrations/
 
+proxy.ts
+actions/
 store/
-
 types/
-```
-
----
-
-# Documentation
-
-Already created:
-
-```
-docs/
-├── Bible.md
-├── PRD.md
-└── TechReq.md
 ```
 
 ---
@@ -325,17 +386,6 @@ Initialized Prisma:
 pnpm prisma init
 ```
 
-Generated:
-
-```
-prisma/
-schema.prisma
-
-prisma.config.ts
-
-.env
-```
-
 Generated Prisma Client:
 
 ```bash
@@ -417,9 +467,7 @@ Added to `.env`:
 
 ```
 DATABASE_URL="..."
-
 BETTER_AUTH_SECRET="..."
-
 BETTER_AUTH_URL="http://localhost:3000"
 ```
 
@@ -449,17 +497,37 @@ Created client:
 lib/auth-client.ts
 ```
 
+Server-side session helper:
+
+```
+lib/auth.ts (requireSession)
+```
+
 ---
 
-## ✅ Theme
+## ✅ Design System
 
-Custom rich dark theme configured in `globals.css`.
+Garment-domain token system in `globals.css`.
 
 Design direction:
 
-- Rich dark (deep blacks with warm tint)
-- Warm amber accent (primary color)
-- Apple Health warmth meets bold modern aesthetic
+- Airbnb-clean: white backgrounds, warm accent, generous whitespace
+- Domain-specific naming (seam, tape, tag, linen, dust)
+- No gradient blobs, no glow shadows, no dark mode
+- Typography-driven hierarchy
+- Geist Mono for woven-label uppercase captions
+
+Palette:
+
+- ink: `#2c0703` (body copy, headings)
+- crimson: `#890620` (pressed/active, links)
+- rose: `#b6465f` (primary accent, CTA)
+- dust: `#da9f93` (secondary accent, icons)
+- linen: `#ebd4cb` (borders, tag stitching)
+- paper: `#ffffff` (page background)
+- canvas: `#fdf9f7` (sidebar background)
+- seam: `#f1e4de` (hairline dividers)
+- ash: `#8a7a75` (muted text)
 
 ---
 
@@ -469,35 +537,160 @@ Split layout auth pages built.
 
 Layout: `app/(auth)/layout.tsx`
 
-- Left panel: Brand area with dark gradient, grid pattern, amber glow
-- Right panel: Clean form area
+- Left panel: Linen background, brand logo, tagline, copyright
+- Right panel: Clean white form area
 - Mobile: Brand collapses to header
 
 Sign-In: `app/(auth)/sign-in/page.tsx`
 
 - Email + password form
-- Show/hide password toggle
 - Error handling, loading states
+- Link to sign-up
 
 Sign-Up: `app/(auth)/sign-up/page.tsx`
 
 - Name + email + password form
-- Live password validation
 - Error handling, loading states
+- Link to sign-in
+
+---
+
+## ✅ Dashboard Layout
+
+Shell with sidebar + navbar.
+
+`app/(dashboard)/layout.tsx`
+
+- Sidebar (240px, canvas background)
+- Navbar (white, linen border)
+- Scrollable main content area
+- Client component managing sidebar open/close state
+
+---
+
+## ✅ Sidebar
+
+`components/layout/sidebar.tsx`
+
+- Canvas background, linen right border
+- Brand logo with rose sparkle icon
+- 5 nav items: Dashboard, Wardrobe, Outfits, Calendar, Analytics
+- Active state: rose tint background + rose text
+- Inactive: ash text, hover to ink
+- Sign out button with crimson hover
+- Mobile: overlay + slide-in + close button
+
+---
+
+## ✅ Navbar
+
+`components/layout/navbar.tsx`
+
+- White background, linen border bottom
+- Hamburger menu (mobile)
+- User name + rose avatar circle with first initial
+- Real session data via useSession()
+
+---
+
+## ✅ Route Protection
+
+`proxy.ts` at project root.
+
+- Checks session cookie via Better Auth
+- Redirects unauthenticated users to `/sign-in`
+- Redirects authenticated users away from auth pages
+
+---
+
+## ✅ Dashboard
+
+Server-rendered with real session data.
+
+`app/(dashboard)/dashboard/page.tsx`
+
+- Server component
+- Dynamic greeting (morning/afternoon/evening) with real first name
+- Today's date in uppercase label format
+- QuickAddButton
+- 3 StatTag cards (hang-tag shape)
+- GettingStarted checklist with TapeProgress
+- ActivityRail feed
+
+`app/(dashboard)/dashboard/loading.tsx`
+
+- Skeleton placeholders matching exact layout
+- Pulse animation
+
+`app/(dashboard)/dashboard/error.tsx`
+
+- Client component with reset callback
+- "Try again" button
+
+Components:
+
+- **StatTag**: Hang-tag shape (clipPath), grommet hole, stitched border, large number + label
+- **TapeProgress**: Tape measure progress bar with tick marks and numbered stops
+- **GettingStarted**: Checklist with tape progress, checkbox items
+- **ActivityRail**: Closet rod timeline with vertical rail, dot markers, seam dividers
+- **QuickAddButton**: Rose CTA with dropdown (Add an item / Create an outfit)
+
+---
+
+## ✅ Dashboard Data
+
+`lib/dashboard-data.ts`
+
+- `getDashboardData()` fetches real session via `requireSession()`
+- Returns real first name
+- Stats return 0 (until wardrobe models exist)
+- No hardcoded/mock data
+
+`lib/auth.ts`
+
+- `requireSession()` reads session from request headers server-side
+
+---
+
+## ✅ Placeholder Pages
+
+All built with same design system (tokens, typography, spacing).
+
+`/wardrobe`
+
+- Category filter pills (All, Tops, Bottoms, Shoes, Outerwear, Accessories)
+- Search bar
+- Empty state with "Add your first item" CTA
+
+`/outfits`
+
+- Empty state with "Create your first outfit" CTA
+
+`/calendar`
+
+- Month navigation with chevrons
+- Empty state
+
+`/analytics`
+
+- 4 stat placeholder cards in hang-tag style
+- Empty state
 
 ---
 
 # Current Blocker
 
-None. Auth flow is ready to test.
+None. Auth flow works. Dashboard renders with real session data.
 
-Next steps:
+---
 
-1. Create a test user via `/sign-up`
-2. Sign in via `/sign-in`
-3. Verify session is created
-4. Build dashboard layout
-5. Add middleware to protect dashboard routes
+# Next Steps
+
+1. Add ClothingItem model to Prisma schema
+2. Run migration
+3. Build upload form with photo dropzone
+4. Connect Cloudinary for image storage
+5. Build wardrobe CRUD with real data
 
 ---
 
@@ -561,15 +754,25 @@ Next steps:
 - CLI vs Runtime dependencies
 - Prisma 7 breaking changes
 - Better Auth client API (signIn, signUp, signOut, useSession)
-- Dark theme design (oklch color space)
-- Hydration warnings (suppressHydrationWarning)
-- Split layout auth design
+- Better Auth server-side sessions (auth.api.getSession with headers)
+- Server Components vs Client Components
+- Server-only data fetching with `server-only` package
+- Loading states (loading.tsx convention)
+- Error boundaries (error.tsx convention)
+- Route groups (parenthesized folders don't add URL segments)
+- Tailwind v4 @theme inline for design tokens
+- Custom CSS properties as Tailwind utilities
+- Garment-domain design token naming
+- Hang-tag clipPath shape
+- Closet rod timeline metaphor
+- Tape measure progress visualization
+- Woven-label typography (tracked uppercase mono)
 
 ---
 
 # Planned Development Order
 
-## Phase 1 — Foundation
+## Phase 1 — Foundation ✅
 
 - ✅ Install Prisma
 - ✅ Initialize Prisma
@@ -579,42 +782,49 @@ Next steps:
 - ✅ Configure Prisma Driver Adapter
 - ✅ Generate Better Auth Schema
 - ✅ First Migration
-- ✅ Theme + Auth UI
+- ✅ Design System + Auth UI
 
 ---
 
-## Phase 2 — Authentication
+## Phase 2 — Authentication ✅
 
 - ✅ Better Auth
 - ✅ Sessions
 - ✅ Register
 - ✅ Login
-- ⏳ Logout
+- ✅ Sign out (sidebar)
+- ✅ Route protection (proxy.ts)
+- ✅ Server-side session helper
 - ⏳ Password Reset
 - ⏳ Email Verification
 - ⏳ Google OAuth
-- ⏳ Middleware (protect routes)
 
 ---
 
-## Phase 3 — UI Foundation
+## Phase 3 — UI Foundation ✅
 
-- Dashboard
-- Sidebar
-- Navbar
-- Theme
-- Responsive Layout
+- ✅ Dashboard layout (sidebar + navbar)
+- ✅ Dashboard page (server-rendered, real session)
+- ✅ Dashboard components (StatTag, TapeProgress, GettingStarted, ActivityRail, QuickAddButton)
+- ✅ Loading states (skeletons)
+- ✅ Error boundaries
+- ✅ Wardrobe page (empty state + filters)
+- ✅ Outfits page (empty state)
+- ✅ Calendar page (month nav + empty state)
+- ✅ Analytics page (stat placeholders + empty state)
+- ✅ No hardcoded/mock data
 
 ---
 
 ## Phase 4 — Wardrobe
 
-- Upload Clothing
-- Cloudinary
-- Sharp
-- CRUD
-- Categories
+- Add ClothingItem model to Prisma
+- Run migration
+- Upload Clothing (Cloudinary + Sharp)
+- CRUD operations (Server Actions)
+- Categories + Subcategories
 - Search
+- Filter by color, season, occasion
 
 ---
 
@@ -647,7 +857,7 @@ Generate outfits using:
 
 - Wear History
 - Outfit History
-- Calendar
+- Calendar integration
 
 ---
 
@@ -706,5 +916,3 @@ The goal is to deeply understand:
 - Production Architecture
 
 while building a real-world production-ready application.
-
-The assistant should continue from the **current Better Auth generation issue**, use the latest official documentation for Prisma 7 and Better Auth, avoid outdated tutorials, explain every command in detail, and proceed one step at a time.
