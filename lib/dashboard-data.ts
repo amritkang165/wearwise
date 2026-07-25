@@ -44,9 +44,13 @@ export async function getDashboardData(): Promise<DashboardData> {
     },
   });
 
+  const outfitsSaved = await prisma.outfit.count({
+    where: { userId },
+  });
+
   const checklist = [
     { id: "1", label: "Add your first item", done: totalItems > 0 },
-    { id: "2", label: "Save your first outfit", done: false },
+    { id: "2", label: "Save your first outfit", done: outfitsSaved > 0 },
     { id: "3", label: "Log an outfit you wore today", done: false },
     { id: "4", label: "Set your style preferences", done: false },
     { id: "5", label: "Try an AI outfit suggestion", done: false },
@@ -56,7 +60,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     firstName,
     stats: {
       totalItems,
-      outfitsSaved: 0,
+      outfitsSaved,
       wornThisWeek,
     },
     checklist,
