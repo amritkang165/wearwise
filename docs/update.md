@@ -685,31 +685,47 @@ pnpm add @google/genai
 
 `analyzeClothingImage(buffer, mimeType)` → sends photo to Gemini 2.0 Flash.
 
+**Multi-item detection:** One photo can return multiple items. A mirror selfie with a full outfit returns an array of items.
+
 Returns:
 
 ```typescript
+AnalyzedClothing[]  // array — one object per item detected
+```
+
+Each item:
+
+```typescript
 {
-  name: string;        // "Blue denim jacket"
-  category: string;    // "outerwear"
-  subcategory: string; // "denim jacket"
-  colors: string[];    // ["blue", "white"]
+  name: string;        // "Pink V-neck ribbed knit sweater"
+  category: string;    // "tops"
+  subcategory: string; // "sweater"
+  colors: string[];    // ["pink"]
   seasons: string[];   // ["Fall", "Winter"]
-  occasions: string[]; // ["Casual"]
-  material: string;    // "denim"
+  occasions: string[]; // ["Casual", "Date Night"]
+  material: string;    // "wool"
   pattern: string;     // "solid"
+  fit: string;         // "fitted"
+  details: string;     // "V-neck, ribbed texture, no logo"
   confidence: number;  // 0.0 - 1.0
 }
 ```
 
+**Distinguishing features:** Prompt asks for neckline, sleeve length, fit, texture, and details to differentiate similar items.
+
 ### Duplicate Detection (`actions/duplicate-check.ts`)
 
-`checkForDuplicate(buffer, mimeType)` → compares photo against existing wardrobe.
+`checkForDuplicate(buffer, mimeType)` → compares each detected item against existing wardrobe.
 
-1. Fetches all user's existing items
-2. Sends photo + item list to Gemini
-3. Asks: "Is this the SAME physical item?"
-4. Returns: `isDuplicate`, `matchedItemId`, `matchedItemName`, `confidence`
-5. Only flags as duplicate if confidence > 0.6
+Returns: `DuplicateCheckResult[]` — one result per item detected.
+
+**Smart comparison:** Compares structural features, not just category/color:
+
+- Same category + same color + similar style = duplicate
+- Same category + same color + different design = NOT a duplicate
+- Different category or color = NOT a duplicate
+
+Example: "Pink V-neck ribbed sweater" vs existing "Pink crew-neck cotton t-shirt" → NOT a duplicate.
 
 ---
 
@@ -723,12 +739,13 @@ Three-step flow:
 
 - Drag & drop zone (or click to browse)
 - Multiple files (up to 5)
+- Works with single-item OR multi-item photos (outfits, flat lays)
 - Preview thumbnails with remove
 - "Analyze with AI" button
 
 **Step 2 — Analyzing**
 
-- Progress: "Analyzing item 1 of 3..."
+- Progress: "Photo 1 of 3" with detail: "Found 3 items. Checking for duplicates..."
 - Progress dots
 - Spinning loader
 
@@ -736,22 +753,26 @@ Three-step flow:
 
 - Duplicates: "Already in wardrobe — will log as worn"
 - New items: "Review AI tags" with editable fields
-- Final button: "Log 2 wears & add 1 new item"
+- Each item shows material, fit, detail tags
+- Remove button per item
+- Final button: "Log 2 wears & add 3 new items"
 
-### Duplicate handling
+### Multi-item detection
 
-1. Upload photo → AI analyzes
-2. AI checks wardrobe → finds match
-3. "Duplicate detected, wear will be logged"
-4. Confirm → wear count incremented + WearLog created
+1. Upload mirror selfie wearing: blue t-shirt, black jeans, white sneakers
+2. AI analyzes → detects 3 items in one photo
+3. Each item checked for duplicates separately
+4. Review shows 3 cards — edit/save each one
+5. Same source photo used as thumbnail for all 3
 
-### New item handling
+### Duplicate detection examples
 
-1. Upload photo → AI analyzes
-2. AI checks wardrobe → no match
-3. Shows AI tags for review
-4. Edit name, colors, seasons, occasions
-5. Confirm → new ClothingItem + first wear logged
+| Photo shows | Wardrobe has | Result |
+|---|---|---|
+| Pink V-neck ribbed sweater | Pink crew-neck cotton t-shirt | NOT duplicate |
+| Blue slim-fit jeans | Blue slim-fit jeans | DUPLICATE |
+| White sneakers | White leather sneakers | DUPLICATE |
+| Black blazer | Black leather jacket | NOT duplicate |
 
 ---
 
@@ -1002,8 +1023,9 @@ clothing_item
 - Zod validation (client + server)
 - Cloudinary (image hosting, CDN, transformations)
 - Sharp (server-side image optimization, WebP conversion)
-- Gemini Vision AI (structured JSON output, clothing analysis)
-- AI duplicate detection (comparing photos against existing items)
+- Gemini Vision AI (structured JSON output, clothing analysis, multi-item detection)
+- AI duplicate detection (structural feature comparison — neckline, fit, material, not just category/color)
+- Multi-item photos (one photo → multiple items detected and processed separately)
 - Wear tracking (WearLog model, automatic + manual logging)
 - FormData handling in Server Actions
 

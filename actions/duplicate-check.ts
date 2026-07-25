@@ -16,7 +16,7 @@ export interface DuplicateCheckResult {
 export async function checkForDuplicate(
   imageBuffer: Buffer,
   mimeType: string
-): Promise<DuplicateCheckResult> {
+): Promise<DuplicateCheckResult[]> {
   const session = await requireSession();
 
   const existingItems = await prisma.clothingItem.findMany({
@@ -28,17 +28,18 @@ export async function checkForDuplicate(
       subcategory: true,
       colors: true,
       brand: true,
+      notes: true,
     },
   });
 
   if (existingItems.length === 0) {
-    return { isDuplicate: false, matchedItemId: null, matchedItemName: null, confidence: 0 };
+    return [];
   }
 
   const itemList = existingItems
     .map(
       (item, i) =>
-        `[${i}] "${item.name}" — ${item.category}${item.subcategory ? "/" + item.subcategory : ""}, colors: [${item.colors.join(", ")}]${item.brand ? ", brand: " + item.brand : ""}`
+        `[${i}] "${item.name}" — ${item.category}${item.subcategory ? "/" + item.subcategory : ""}, colors: [${item.colors.join(", ")}]${item.brand ? ", brand: " + item.brand : ""}${item.notes ? ", notes: " + item.notes : ""}`
     )
     .join("\n");
 
@@ -53,22 +54,31 @@ export async function checkForDuplicate(
             inlineData: { data: base64Data, mimeType },
           },
           {
-            text: `You are comparing a photo of a clothing item against an existing wardrobe.
+            text: `You are checking if items in a photo already exist in someone's wardrobe.
 
 EXISTING WARDROBE ITEMS:
 ${itemList}
 
-Look at the photo and determine if this is the SAME physical item as any of the existing items listed above. Consider:
-- Same color/pattern
-- Same type of garment
-- Same style/brand if visible
+The photo may contain MULTIPLE clothing items. For EACH item in the photo, check if it matches any existing wardrobe item.
 
-Return a JSON object:
-- isDuplicate: boolean — true if this photo shows an item that already exists in the wardrobe
-- matchedItemIndex: number — the index [0, 1, 2...] of the matched item, or -1 if no match
-- confidence: number — how sure you are (0.0 to 1.0). Only return true if confidence > 0.6
+Compare using SPECIFIC features, not just category or color:
+- Same category AND same color AND similar style = likely duplicate
+- Same category AND same color BUT different design (neckline, sleeve, pattern, fit) = NOT a duplicate
+- Different category or different color = NOT a duplicate
 
-Return ONLY the JSON object.`,
+For example:
+- Photo shows "Pink V-neck ribbed sweater" vs wardrobe has "Pink crew-neck cotton t-shirt" → NOT a duplicate (different neckline, different material)
+- Photo shows "Blue slim-fit jeans" vs wardrobe has "Blue slim-fit jeans" → DUPLICATE (same item)
+- Photo shows "White sneakers" vs wardrobe has "White leather sneakers" → likely DUPLICATE
+
+Return a JSON array of objects, one per item detected in the photo:
+- itemIndex: number — the index [0, 1, 2...] of the matched wardrobe item, or -1 if no match
+- isDuplicate: boolean — true only if confidence > 0.7
+- confidence: number — 0.0 to 1.0
+
+If the photo shows 3 items, return 3 objects in the array. Order matches the order items appear in the photo.
+
+Return ONLY the JSON array.`,
           },
         ],
       },
@@ -80,17 +90,21 @@ Return ONLY the JSON object.`,
 
   try {
     const parsed = JSON.parse(text);
-    const matchedIndex = parsed.matchedItemIndex ?? -1;
-    const isDuplicate = parsed.isDuplicate === true && matchedIndex >= 0;
-    const matchedItem = isDuplicate ? existingItems[matchedIndex] : null;
+    const items = Array.isArray(parsed) ? parsed : [parsed];
 
-    return {
-      isDuplicate,
-      matchedItemId: matchedItem?.id ?? null,
-      matchedItemName: matchedItem?.name ?? null,
-      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
-    };
+    return items.map((item) => {
+      const matchedIndex = item.itemIndex ?? -1;
+      const isDuplicate = item.isDuplicate === true && matchedIndex >= 0;
+      const matchedItem = isDuplicate ? existingItems[matchedIndex] : null;
+
+      return {
+        isDuplicate,
+        matchedItemId: matchedItem?.id ?? null,
+        matchedItemName: matchedItem?.name ?? null,
+        confidence: typeof item.confidence === "number" ? item.confidence : 0,
+      };
+    });
   } catch {
-    return { isDuplicate: false, matchedItemId: null, matchedItemName: null, confidence: 0 };
+    return [];
   }
 }

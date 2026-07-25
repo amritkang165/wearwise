@@ -507,35 +507,47 @@ pnpm add @google/genai
 
 `analyzeClothingImage(buffer, mimeType)` — sends photo to Gemini 2.0 Flash.
 
+**Multi-item detection:** One photo can return multiple items. A mirror selfie with a full outfit returns an array of items (top, bottom, shoes, etc.).
+
 Returns:
 
 ```typescript
+AnalyzedClothing[]  // array — one object per item detected
+```
+
+Each item:
+
+```typescript
 {
-  name: string;        // "Blue denim jacket"
-  category: string;    // "outerwear"
-  subcategory: string; // "denim jacket"
-  colors: string[];    // ["blue", "white"]
+  name: string;        // "Pink V-neck ribbed knit sweater"
+  category: string;    // "tops"
+  subcategory: string; // "sweater"
+  colors: string[];    // ["pink"]
   seasons: string[];   // ["Fall", "Winter"]
-  occasions: string[]; // ["Casual"]
-  material: string;    // "denim"
+  occasions: string[]; // ["Casual", "Date Night"]
+  material: string;    // "wool"
   pattern: string;     // "solid"
+  fit: string;         // "fitted"
+  details: string;     // "V-neck, ribbed texture, no logo"
   confidence: number;  // 0.0 - 1.0
 }
 ```
 
-Prompt asks Gemini to return structured JSON with `responseMimeType: "application/json"`.
+**Distinguishing features:** Prompt specifically asks for neckline, sleeve length, fit, texture, and details to differentiate similar items (e.g. two pink tops with different necklines).
 
 ### Duplicate Detection (`actions/duplicate-check.ts`)
 
-`checkForDuplicate(buffer, mimeType)` — compares photo against existing wardrobe.
+`checkForDuplicate(buffer, mimeType)` — compares each detected item against existing wardrobe.
 
-How it works:
+Returns: `DuplicateCheckResult[]` — one result per item detected.
 
-1. Fetches all user's existing items (name, category, colors, brand)
-2. Sends photo + item list to Gemini
-3. Asks: "Is this the SAME physical item as any of these?"
-4. Returns: `isDuplicate`, `matchedItemId`, `matchedItemName`, `confidence`
-5. Only flags as duplicate if confidence > 0.6
+**Smart comparison:** AI compares structural features, not just category and color:
+
+- Same category + same color + similar style = duplicate
+- Same category + same color + different design = NOT a duplicate
+- Different category or color = NOT a duplicate
+
+Example: "Pink V-neck ribbed sweater" vs existing "Pink crew-neck cotton t-shirt" → NOT a duplicate (different neckline, different material).
 
 ---
 
@@ -549,12 +561,13 @@ Three-step flow:
 
 * Drag & drop zone (or click to browse)
 * Supports multiple files (up to 5)
+* Works with single-item photos OR multi-item photos (outfits, flat lays)
 * Preview thumbnails with remove button
 * "Analyze with AI" button
 
 **Step 2 — Analyzing**
 
-* Shows progress: "Analyzing item 1 of 3..."
+* Shows progress: "Photo 1 of 3" with detail: "Found 3 items. Checking for duplicates..."
 * Progress dots for each image
 * Spinning loader
 
@@ -563,30 +576,32 @@ Three-step flow:
 * Duplicates section: "Already in wardrobe — will log as worn"
 * New items section: "Review AI tags"
 * Each new item shows:
-  * Photo thumbnail
-  * Editable name
+  * Photo thumbnail (same photo if multiple items from one image)
+  * Editable name (pre-filled with specific AI description)
+  * Material, fit, and detail tags
   * Category dropdown
   * Color pills
   * Season pills
   * Occasion pills
-  * Material info
-* Final button: "Log 2 wears & add 1 new item"
+  * Remove button per item
+* Final button: "Log 2 wears & add 3 new items"
 
-### How duplicates are handled
+### Multi-item detection
 
-1. Upload photo of blue jeans
-2. AI analyzes → identifies as "Blue denim jeans, bottoms"
-3. AI checks wardrobe → finds existing "Blue Levi's 501s"
-4. If match found → "Duplicate detected, wear will be logged"
-5. User confirms → wear count incremented, WearLog entry created
+1. Upload mirror selfie wearing: blue t-shirt, black jeans, white sneakers
+2. AI analyzes → detects 3 items in one photo
+3. Each item checked for duplicates separately
+4. Review shows 3 cards — edit/save each one
+5. Same source photo used as thumbnail for all 3
 
-### How new items are handled
+### Duplicate detection examples
 
-1. Upload photo of red sweater
-2. AI analyzes → identifies as "Red wool sweater, tops"
-3. AI checks wardrobe → no match found
-4. Shows in review section with AI tags
-5. User can edit name, colors, seasons, occasions
+| Photo shows | Wardrobe has | Result |
+|---|---|---|
+| Pink V-neck ribbed sweater | Pink crew-neck cotton t-shirt | NOT duplicate (different neckline, material) |
+| Blue slim-fit jeans | Blue slim-fit jeans | DUPLICATE (same item) |
+| White sneakers | White leather sneakers | DUPLICATE (likely same) |
+| Black blazer | Black leather jacket | NOT duplicate (different category/style) |
 6. User confirms → new ClothingItem created + first wear logged
 
 ---

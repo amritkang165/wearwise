@@ -8,9 +8,9 @@ import {
   Sparkles,
   Check,
   Loader2,
-  ArrowLeft,
-  Copy,
   RefreshCw,
+  Copy,
+  Images,
 } from "lucide-react";
 import { analyzeClothingImage, type AnalyzedClothing } from "@/actions/analyze";
 import { checkForDuplicate } from "@/actions/duplicate-check";
@@ -93,6 +93,7 @@ export function SmartUploader() {
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [analyzingIndex, setAnalyzingIndex] = useState(0);
+  const [analyzingDetail, setAnalyzingDetail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((files: FileList | File[]) => {
@@ -116,27 +117,36 @@ export function SmartUploader() {
 
     for (let i = 0; i < images.length; i++) {
       setAnalyzingIndex(i);
+      setAnalyzingDetail("Identifying items...");
       const image = images[i];
 
       try {
         const arrayBuffer = await image.file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Analyze with AI
-        const analyzed = await analyzeClothingImage(buffer, image.file.type);
+        // Analyze with AI — returns array of items from one photo
+        setAnalyzingDetail("AI is reading the photo...");
+        const analyzedItems = await analyzeClothingImage(buffer, image.file.type);
 
-        // Check for duplicates
-        const dupCheck = await checkForDuplicate(buffer, image.file.type);
+        setAnalyzingDetail(`Found ${analyzedItems.length} item${analyzedItems.length > 1 ? "s" : ""}. Checking for duplicates...`);
 
-        if (dupCheck.isDuplicate && dupCheck.matchedItemId) {
-          allResults.push({
-            type: "duplicate",
-            image,
-            matchedId: dupCheck.matchedItemId,
-            matchedName: dupCheck.matchedItemName ?? "Existing item",
-          });
-        } else {
-          allResults.push({ type: "new", image, data: analyzed });
+        // Check duplicates for each detected item
+        const dupResults = await checkForDuplicate(buffer, image.file.type);
+
+        for (let j = 0; j < analyzedItems.length; j++) {
+          const analyzed = analyzedItems[j];
+          const dup = dupResults[j];
+
+          if (dup?.isDuplicate && dup.matchedItemId) {
+            allResults.push({
+              type: "duplicate",
+              image,
+              matchedId: dup.matchedItemId,
+              matchedName: dup.matchedItemName ?? "Existing item",
+            });
+          } else {
+            allResults.push({ type: "new", image, data: analyzed });
+          }
         }
       } catch {
         allResults.push({
@@ -151,6 +161,8 @@ export function SmartUploader() {
             occasions: [],
             material: "",
             pattern: "solid",
+            fit: "",
+            details: "",
             confidence: 0,
           },
         });
@@ -172,6 +184,10 @@ export function SmartUploader() {
         return { ...item, data: { ...item.data, [field]: value } };
       })
     );
+  };
+
+  const removeResult = (index: number) => {
+    setResults((prev) => prev.filter((_, i) => i !== index));
   };
 
   const saveAll = async () => {
@@ -201,7 +217,13 @@ export function SmartUploader() {
         formData.append("purchasePrice", "");
         formData.append(
           "notes",
-          item.data.material ? `Material: ${item.data.material}` : ""
+          [
+            item.data.material ? `Material: ${item.data.material}` : "",
+            item.data.fit ? `Fit: ${item.data.fit}` : "",
+            item.data.details ? `Details: ${item.data.details}` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")
         );
         formData.append("images", item.image.file);
 
@@ -247,12 +269,17 @@ export function SmartUploader() {
               Drop photos of your clothing
             </p>
             <p className="text-[13px] text-ash mt-1">
-              AI identifies each item, detects duplicates, and logs wear
+              One item or full outfit — AI identifies everything
             </p>
           </div>
-          <p className="text-[11px] text-dust">
-            JPG, PNG, or WebP · Up to 5 items at once
-          </p>
+          <div className="flex items-center gap-4 mt-1">
+            <div className="flex items-center gap-1.5 text-[11px] text-dust">
+              <Images className="w-3.5 h-3.5" />
+              <span>Single item or multi-item photos</span>
+            </div>
+            <div className="w-px h-3 bg-linen" />
+            <p className="text-[11px] text-dust">JPG, PNG, WebP · Up to 5 photos</p>
+          </div>
           <input
             ref={inputRef}
             type="file"
@@ -297,7 +324,7 @@ export function SmartUploader() {
               className="w-full h-11 rounded-xl bg-rose text-paper text-[14px] font-medium hover:bg-crimson transition-colors flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
-              Analyze {images.length} {images.length === 1 ? "item" : "items"}
+              Analyze {images.length} {images.length === 1 ? "photo" : "photos"}
             </button>
           </div>
         )}
@@ -311,11 +338,9 @@ export function SmartUploader() {
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="w-8 h-8 text-rose animate-spin" />
         <p className="text-[15px] font-medium text-ink">
-          Analyzing item {analyzingIndex + 1} of {images.length}...
+          Photo {analyzingIndex + 1} of {images.length}
         </p>
-        <p className="text-[13px] text-ash">
-          AI is identifying the item and checking your wardrobe
-        </p>
+        <p className="text-[13px] text-ash">{analyzingDetail}</p>
         <div className="flex gap-1 mt-2">
           {images.map((_, i) => (
             <div
@@ -343,7 +368,8 @@ export function SmartUploader() {
             className="text-[12px] tracking-[0.04em] text-ash"
             style={{ fontFamily: "var(--font-label)" }}
           >
-            {dupCount > 0 && `${dupCount} duplicate${dupCount > 1 ? "s" : ""} found · `}
+            {dupCount > 0 && `${dupCount} duplicate${dupCount > 1 ? "s" : ""} found`}
+            {dupCount > 0 && newCount > 0 && " · "}
             {newCount > 0 && `${newCount} new item${newCount > 1 ? "s" : ""} to add`}
           </p>
         </div>
@@ -424,20 +450,45 @@ export function SmartUploader() {
                     />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <input
-                      value={item.data.name}
-                      onChange={(e) =>
-                        updateData(index, "name", e.target.value)
-                      }
-                      className="text-[16px] font-semibold text-ink bg-transparent outline-none w-full"
-                    />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-start gap-2">
+                      <input
+                        value={item.data.name}
+                        onChange={(e) =>
+                          updateData(index, "name", e.target.value)
+                        }
+                        className="text-[16px] font-semibold text-ink bg-transparent outline-none w-full"
+                      />
+                      <button
+                        onClick={() => removeResult(index)}
+                        className="shrink-0 w-6 h-6 rounded flex items-center justify-center text-ash hover:text-crimson hover:bg-crimson/5 transition-colors"
+                        title="Remove this item"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className="text-[10px] tracking-[0.1em] uppercase text-ash px-2 py-0.5 bg-canvas rounded border border-linen"
                         style={{ fontFamily: "var(--font-label)" }}
                       >
                         {item.data.category}
                       </span>
+                      {item.data.material && (
+                        <span
+                          className="text-[10px] tracking-[0.1em] uppercase text-ash px-2 py-0.5 bg-canvas rounded border border-linen"
+                          style={{ fontFamily: "var(--font-label)" }}
+                        >
+                          {item.data.material}
+                        </span>
+                      )}
+                      {item.data.fit && (
+                        <span
+                          className="text-[10px] tracking-[0.1em] uppercase text-ash px-2 py-0.5 bg-canvas rounded border border-linen"
+                          style={{ fontFamily: "var(--font-label)" }}
+                        >
+                          {item.data.fit} fit
+                        </span>
+                      )}
                       {item.data.confidence > 0.7 && (
                         <span
                           className="text-[10px] tracking-[0.1em] uppercase text-rose px-2 py-0.5 bg-rose/5 rounded border border-rose/20 flex items-center gap-1"
@@ -448,6 +499,11 @@ export function SmartUploader() {
                         </span>
                       )}
                     </div>
+                    {item.data.details && (
+                      <p className="text-[11px] text-ash mt-1">
+                        {item.data.details}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -514,39 +570,35 @@ export function SmartUploader() {
                     onChange={(val) => updateData(index, "occasions", val)}
                   />
                 </div>
-
-                {item.data.material && (
-                  <p className="text-[12px] text-ash">
-                    Material: {item.data.material} · {item.data.pattern}
-                  </p>
-                )}
               </div>
             );
           })}
         </div>
       )}
 
-      <button
-        onClick={saveAll}
-        disabled={isSaving}
-        className="w-full h-11 rounded-xl bg-rose text-paper text-[14px] font-medium hover:bg-crimson disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            <Check className="w-4 h-4" />
-            {dupCount > 0 && newCount > 0
-              ? `Log ${dupCount} wear${dupCount > 1 ? "s" : ""} & add ${newCount} new item${newCount > 1 ? "s" : ""}`
-              : dupCount > 0
-                ? `Log ${dupCount} wear${dupCount > 1 ? "s" : ""}`
-                : `Add ${newCount} new item${newCount > 1 ? "s" : ""}`}
-          </>
-        )}
-      </button>
+      {results.length > 0 && (
+        <button
+          onClick={saveAll}
+          disabled={isSaving}
+          className="w-full h-11 rounded-xl bg-rose text-paper text-[14px] font-medium hover:bg-crimson disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Check className="w-4 h-4" />
+              {dupCount > 0 && newCount > 0
+                ? `Log ${dupCount} wear${dupCount > 1 ? "s" : ""} & add ${newCount} new item${newCount > 1 ? "s" : ""}`
+                : dupCount > 0
+                  ? `Log ${dupCount} wear${dupCount > 1 ? "s" : ""}`
+                  : `Add ${newCount} new item${newCount > 1 ? "s" : ""}`}
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
