@@ -1,8 +1,10 @@
 allowBuilds:
+  '@google/genai': true
   '@prisma/client': false
   '@prisma/engines': true
   better-sqlite3: false
   prisma: true
+  protobufjs: true
   sharp: true
   unrs-resolver: true
 ignoredBuiltDependencies:

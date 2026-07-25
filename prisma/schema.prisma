@@ -18,6 +18,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  clothingItems ClothingItem[]
+  wearLogs      WearLog[]
 
   @@unique([email])
   @@map("user")
@@ -69,4 +71,46 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model ClothingItem {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  category      String
+  subcategory   String?
+  brand         String?
+  colors        String[]
+  purchaseDate  DateTime?
+  purchasePrice Float?
+  size          String?
+  seasons       String[]
+  occasions     String[]
+  notes         String?
+  images        String[]
+  wearCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wearLogs   WearLog[]
+
+  @@index([userId])
+  @@map("clothing_item")
+}
+
+model WearLog {
+  id              String   @id @default(cuid())
+  userId          String
+  clothingItemId  String
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clothingItem ClothingItem  @relation(fields: [clothingItemId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([clothingItemId])
+  @@index([date])
+  @@map("wear_log")
 }

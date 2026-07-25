@@ -66,14 +66,6 @@ The assistant should continue teaching in this exact style.
 - Lucide React
 - Geist Sans + Geist Mono
 
-Planned:
-
-- Framer Motion
-- Zustand
-- React Hook Form
-- Zod
-- Recharts
-
 ---
 
 ## Backend
@@ -89,125 +81,53 @@ Planned:
 
 ## Database
 
-- Neon PostgreSQL
-
----
-
-## Design System
-
-Garment-domain token system. Airbnb-clean aesthetic.
-
-### Palette
-
-| Token | Hex | Role |
-|---|---|---|
-| `ink` | `#2c0703` | Body copy, headings |
-| `crimson` | `#890620` | Pressed/active states, links |
-| `rose` | `#b6465f` | Primary accent, CTA buttons |
-| `dust` | `#da9f93` | Secondary accent, icons, avatar ring |
-| `linen` | `#ebd4cb` | Borders, sidebar wash, tag stitching |
-| `paper` | `#ffffff` | Page background |
-| `canvas` | `#fdf9f7` | Sidebar/recessed panel background |
-| `seam` | `#f1e4de` | Hairline dividers |
-| `ash` | `#8a7a75` | Muted secondary text |
-
-### Typography
-
-- `--font-sans`: Geist Sans (body, headings)
-- `--font-label`: Geist Mono (woven-label uppercase captions — stat labels, categories, dates)
-
-### Shape
-
-- `--radius-card`: 10px
-- `--radius-pill`: 999px
-
-### Design Principles
-
-- White backgrounds, warm accent, generous whitespace
-- No gradient blobs, no glow shadows, no dark mode
-- Typography-driven hierarchy
-- Domain-specific naming (seam, tape, tag, linen, dust)
-- Garment metaphor throughout (hang-tags, closet rod, tape measure, stitched borders)
-
----
-
-## Prisma
-
-- Prisma ORM 7
-- Prisma Client
-- PostgreSQL Driver Adapter
-- pg Driver
-
-Packages:
-
-- prisma
-- @prisma/client
-- @prisma/adapter-pg
-- pg
+- Neon PostgreSQL (6 tables)
 
 ---
 
 ## AI
 
-Gemini 2.5 Flash
+Gemini 2.0 Flash
 
 ### Vision
 
 - Clothing detection
-- Category
-- Color
-- Pattern
-- Sleeve length
-- Material
-- Season
+- Category classification
+- Color detection
+- Material detection
+- Pattern detection
+- Season suitability
+- Occasion suitability
 
 ### LLM
 
-- Outfit recommendations
-- Natural language search
-- Packing assistant
-- Shopping advice
+- Duplicate detection (comparing new uploads against existing wardrobe)
+- Outfit recommendations (planned)
+- Natural language search (planned)
 
 ---
 
 ## Storage
 
-Cloudinary
+- Cloudinary (image hosting, CDN, transformations)
+- Sharp (server-side image optimization)
 
 ---
 
 ## APIs
 
-- Gemini
+- Gemini (Google GenAI)
 - Cloudinary
-- OpenWeather
-- Resend
-
-Future:
-
-- Google Calendar
-- Google Maps
-
----
-
-## Analytics
-
-PostHog
-
----
-
-## Testing
-
-- Vitest
-- Playwright
-- Supertest
+- OpenWeather (planned)
+- Resend (planned)
 
 ---
 
 ## Deployment
 
-- Vercel
-- Neon
+- Vercel (planned)
+- Neon (connected)
+- Cloudinary (connected)
 
 ---
 
@@ -225,7 +145,14 @@ app/
 │   │   ├── page.tsx
 │   │   ├── loading.tsx
 │   │   └── error.tsx
-│   ├── wardrobe/page.tsx
+│   ├── wardrobe/
+│   │   ├── page.tsx
+│   │   ├── client.tsx
+│   │   ├── new/page.tsx
+│   │   └── [id]/
+│   │       ├── page.tsx
+│   │       ├── delete-button.tsx
+│   │       └── edit/page.tsx
 │   ├── outfits/page.tsx
 │   ├── calendar/page.tsx
 │   └── analytics/page.tsx
@@ -233,6 +160,12 @@ app/
 ├── globals.css
 ├── layout.tsx
 └── page.tsx
+
+actions/
+├── analyze.ts
+├── duplicate-check.ts
+├── wardrobe.ts
+└── wear-log.ts
 
 components/
 ├── dashboard/
@@ -243,16 +176,19 @@ components/
 │   └── QuickAddButton.tsx
 ├── layout/
 │   ├── sidebar.tsx
-│   └── navbar.tsx
+│   ├── navbar.tsx
+│   └── theme-toggle.tsx
 ├── ui/
 │   ├── button.tsx
 │   ├── input.tsx
 │   ├── label.tsx
 │   ├── card.tsx
 │   └── separator.tsx
-├── wardrobe/
-├── outfit/
-└── shared/
+└── wardrobe/
+    ├── SmartUploader.tsx
+    ├── ItemForm.tsx
+    ├── ItemCard.tsx
+    └── UploadDropzone.tsx
 
 docs/
 ├── Bible.md
@@ -261,30 +197,26 @@ docs/
 ├── changelog.md
 └── update.md
 
-hooks/
 lib/
 ├── auth/
 │   └── auth.ts
-├── auth.ts                (server-side session helper)
+├── auth.ts
 ├── auth-client.ts
 ├── dashboard-data.ts
-├── cloudinary/
-├── gemini/
-├── generated/
-│   └── prisma/
-├── prisma/
-│   └── client.ts
+├── cloudinary.ts
+├── validations/wardrobe.ts
+├── generated/prisma/
+├── prisma/client.ts
 └── utils.ts
 
 prisma/
 ├── schema.prisma
 ├── prisma.config.ts
 └── migrations/
+    ├── 20260724183709_add_clothing_item/
+    └── 20260724190926_add_wear_log/
 
 proxy.ts
-actions/
-store/
-types/
 ```
 
 ---
@@ -513,9 +445,9 @@ Design direction:
 
 - Airbnb-clean: white backgrounds, warm accent, generous whitespace
 - Domain-specific naming (seam, tape, tag, linen, dust)
-- No gradient blobs, no glow shadows, no dark mode
 - Typography-driven hierarchy
 - Geist Mono for woven-label uppercase captions
+- Dark/light mode with CSS custom properties
 
 Palette:
 
@@ -590,6 +522,7 @@ Shell with sidebar + navbar.
 - Hamburger menu (mobile)
 - User name + rose avatar circle with first initial
 - Real session data via useSession()
+- ThemeToggle (sun/moon icon)
 
 ---
 
@@ -643,7 +576,8 @@ Components:
 
 - `getDashboardData()` fetches real session via `requireSession()`
 - Returns real first name
-- Stats return 0 (until wardrobe models exist)
+- Stats query real database (totalItems, wornThisWeek)
+- Checklist progresses as items are added
 - No hardcoded/mock data
 
 `lib/auth.ts`
@@ -652,45 +586,353 @@ Components:
 
 ---
 
-## ✅ Placeholder Pages
+## ✅ Dark Mode
 
-All built with same design system (tokens, typography, spacing).
+Theme toggle with full dark/light mode support.
 
-`/wardrobe`
+`components/layout/theme-toggle.tsx`
 
-- Category filter pills (All, Tops, Bottoms, Shoes, Outerwear, Accessories)
-- Search bar
-- Empty state with "Add your first item" CTA
+- Sun/Moon icon button in navbar
+- Toggles `.dark` class on `<html>`
+- Persists preference to `localStorage`
+- Respects OS preference on first visit
+- Hydration-safe (null-initializer pattern)
 
-`/outfits`
+Dark palette swaps all 9 tokens under `.dark` class.
 
-- Empty state with "Create your first outfit" CTA
-
-`/calendar`
-
-- Month navigation with chevrons
-- Empty state
-
-`/analytics`
-
-- 4 stat placeholder cards in hang-tag style
-- Empty state
+Flash prevention: inline `<script>` in `<head>` reads localStorage before React renders.
 
 ---
 
-# Current Blocker
+# Phase 4: Wardrobe CRUD + AI Smart Upload ✅
 
-None. Auth flow works. Dashboard renders with real session data.
+## ClothingItem Model
+
+Added to Prisma schema. Migrated to Neon.
+
+```prisma
+model ClothingItem {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  category      String
+  subcategory   String?
+  brand         String?
+  colors        String[]
+  purchaseDate  DateTime?
+  purchasePrice Float?
+  size          String?
+  seasons       String[]
+  occasions     String[]
+  notes         String?
+  images        String[]
+  wearCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+```
+
+Indexes: `userId`
+Cascade delete: deleting user removes all items
 
 ---
 
-# Next Steps
+## WearLog Model
 
-1. Add ClothingItem model to Prisma schema
-2. Run migration
-3. Build upload form with photo dropzone
-4. Connect Cloudinary for image storage
-5. Build wardrobe CRUD with real data
+Tracks every time an item is worn.
+
+```prisma
+model WearLog {
+  id              String   @id @default(cuid())
+  userId          String
+  clothingItemId  String
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
+}
+```
+
+Indexes: `userId`, `clothingItemId`, `date`
+Cascade delete: deleting user or item removes wear logs
+
+---
+
+## Cloudinary + Sharp
+
+### Cloudinary
+
+- Cloud name: (from .env)
+- Free tier: 25GB storage, 25GB bandwidth/month
+- Auto-format delivery (WebP), CDN worldwide
+
+### Sharp
+
+- Resizes to max 800x800
+- Converts to WebP (30-50% smaller)
+- Strips EXIF data (privacy)
+- Runs server-side before Cloudinary upload
+
+---
+
+## Gemini Vision AI
+
+### Package
+
+```bash
+pnpm add @google/genai
+```
+
+### Analysis (`actions/analyze.ts`)
+
+`analyzeClothingImage(buffer, mimeType)` → sends photo to Gemini 2.0 Flash.
+
+Returns:
+
+```typescript
+{
+  name: string;        // "Blue denim jacket"
+  category: string;    // "outerwear"
+  subcategory: string; // "denim jacket"
+  colors: string[];    // ["blue", "white"]
+  seasons: string[];   // ["Fall", "Winter"]
+  occasions: string[]; // ["Casual"]
+  material: string;    // "denim"
+  pattern: string;     // "solid"
+  confidence: number;  // 0.0 - 1.0
+}
+```
+
+### Duplicate Detection (`actions/duplicate-check.ts`)
+
+`checkForDuplicate(buffer, mimeType)` → compares photo against existing wardrobe.
+
+1. Fetches all user's existing items
+2. Sends photo + item list to Gemini
+3. Asks: "Is this the SAME physical item?"
+4. Returns: `isDuplicate`, `matchedItemId`, `matchedItemName`, `confidence`
+5. Only flags as duplicate if confidence > 0.6
+
+---
+
+## Smart Upload Flow
+
+### Component (`components/wardrobe/SmartUploader.tsx`)
+
+Three-step flow:
+
+**Step 1 — Upload**
+
+- Drag & drop zone (or click to browse)
+- Multiple files (up to 5)
+- Preview thumbnails with remove
+- "Analyze with AI" button
+
+**Step 2 — Analyzing**
+
+- Progress: "Analyzing item 1 of 3..."
+- Progress dots
+- Spinning loader
+
+**Step 3 — Review**
+
+- Duplicates: "Already in wardrobe — will log as worn"
+- New items: "Review AI tags" with editable fields
+- Final button: "Log 2 wears & add 1 new item"
+
+### Duplicate handling
+
+1. Upload photo → AI analyzes
+2. AI checks wardrobe → finds match
+3. "Duplicate detected, wear will be logged"
+4. Confirm → wear count incremented + WearLog created
+
+### New item handling
+
+1. Upload photo → AI analyzes
+2. AI checks wardrobe → no match
+3. Shows AI tags for review
+4. Edit name, colors, seasons, occasions
+5. Confirm → new ClothingItem + first wear logged
+
+---
+
+## Wardrobe CRUD Actions (`actions/wardrobe.ts`)
+
+### `createClothingItem(formData)`
+
+1. Validate session
+2. Parse FormData with Zod
+3. Process images (Sharp)
+4. Upload to Cloudinary
+5. Create ClothingItem
+6. Redirect to /wardrobe
+
+### `updateClothingItem(id, formData)`
+
+1. Validate session + ownership
+2. Parse FormData
+3. Replace images if new ones uploaded
+4. Update ClothingItem
+5. Redirect to /wardrobe/[id]
+
+### `deleteClothingItem(id)`
+
+1. Validate session + ownership
+2. Delete images from Cloudinary
+3. Delete ClothingItem
+4. Redirect to /wardrobe
+
+---
+
+## Wear Logging Actions (`actions/wear-log.ts`)
+
+### `logWear(clothingItemId)`
+
+1. Validate session + ownership
+2. Create WearLog entry
+3. Increment wearCount
+
+### `logWearForItems(clothingItemIds)`
+
+Batch version for handling multiple duplicates at once.
+
+---
+
+## Wardrobe Pages
+
+### `/wardrobe` — Grid View
+
+- Server component fetches all items
+- Client component handles search + filtering
+- Search: name, brand, subcategory
+- Category buttons: All, Tops, Bottoms, Shoes, Outerwear, Accessories
+- Responsive grid: 2/3/4 columns
+- Empty state
+
+### `/wardrobe/new` — Smart Upload
+
+- SmartUploader component
+- AI-powered flow
+
+### `/wardrobe/[id]` — Detail View
+
+- Large main image
+- Thumbnail gallery
+- All item info (name, category, brand, size, colors, seasons, occasions, price, date, wear count, notes)
+- Edit + Delete buttons
+
+### `/wardrobe/[id]/edit` — Edit Form
+
+- Pre-filled ItemForm
+- Photo replacement
+- Zod validation
+
+### `/wardrobe/[id]/delete-button` — Delete Confirmation
+
+- Inline confirmation
+- Removes from Cloudinary + DB
+
+---
+
+## Wardrobe Components
+
+### `SmartUploader.tsx`
+
+AI-powered upload flow.
+
+### `ItemForm.tsx`
+
+- Photo dropzone
+- Name, category, type, brand, size inputs
+- Color pills (16 colors)
+- Season pills (4)
+- Occasion pills (5)
+- Price + date
+- Notes textarea
+
+### `ItemCard.tsx`
+
+- Photo (or placeholder)
+- Wear count badge
+- Item name + category + brand
+- Quick "Log wear" `+` button
+- Click → detail view
+
+### `UploadDropzone.tsx`
+
+- Drag & drop
+- Click to browse
+- Preview thumbnails
+- File validation
+
+---
+
+## Validation (`lib/validations/wardrobe.ts`)
+
+Zod schema + constants:
+
+- `clothingItemSchema`
+- `CATEGORIES` (5)
+- `COLORS` (16)
+- `SEASONS` (4)
+- `OCCASIONS` (5)
+
+---
+
+## Dashboard Stats (Updated)
+
+`lib/dashboard-data.ts` queries real database:
+
+```typescript
+const totalItems = await prisma.clothingItem.count({ where: { userId } });
+const wornThisWeek = await prisma.clothingItem.count({
+  where: { userId, wearCount: { gt: 0 } },
+});
+```
+
+Checklist progresses as items are added.
+
+---
+
+# Database Schema (Current)
+
+6 tables in Neon PostgreSQL:
+
+```
+user
+├── session (1:many)
+├── account (1:many)
+├── clothing_item (1:many)
+└── wear_log (1:many)
+
+clothing_item
+└── wear_log (1:many)
+```
+
+---
+
+# What Works
+
+- `pnpm dev` starts successfully
+- `/sign-in` — login
+- `/sign-up` — register
+- `/` — redirects to `/sign-in`
+- `/dashboard` — real session, real stats, getting started, activity
+- `/wardrobe` — grid with real data, search, filters
+- `/wardrobe/new` — AI smart upload (photo → analyze → review → save)
+- `/wardrobe/[id]` — detail view, edit, delete
+- `/outfits` — empty state (not yet built)
+- `/calendar` — empty state (not yet built)
+- `/analytics` — empty state (not yet built)
+- Prisma connected to Neon (6 tables)
+- Better Auth API routes
+- Server-side session
+- Sign out from sidebar
+- Loading skeletons + error boundaries
+- Dark/light mode toggle
+- Duplicate detection via AI
+- Wear logging (automatic + manual)
+- Dashboard stats from real database
+- No hardcoded/mock data
 
 ---
 
@@ -714,8 +956,10 @@ None. Auth flow works. Dashboard renders with real session data.
 - clsx
 - tailwind-merge
 - tw-animate-css
-
----
+- cloudinary
+- sharp
+- zod
+- @google/genai
 
 ## Dev Dependencies
 
@@ -735,38 +979,33 @@ None. Auth flow works. Dashboard renders with real session data.
 
 # Concepts Learned
 
-- pnpm
-- Corepack
-- Lockfiles
+- pnpm, Corepack, Lockfiles
 - pnpm approve-builds
 - Git workflow
-- App Router
-- shadcn architecture
-- Prisma generators
-- Prisma Client
-- Prisma singleton
-- Driver adapters
-- PostgreSQL adapters
-- Neon
-- Environment variables
-- Better Auth architecture
-- Better Auth adapters
-- CLI vs Runtime dependencies
-- Prisma 7 breaking changes
-- Better Auth client API (signIn, signUp, signOut, useSession)
-- Better Auth server-side sessions (auth.api.getSession with headers)
+- App Router (route groups, loading.tsx, error.tsx)
+- shadcn architecture (Radix primitives)
+- Prisma 7 (generators, Client, singleton, driver adapters, breaking changes)
+- Neon PostgreSQL
+- Better Auth (adapters, client API, server-side sessions)
 - Server Components vs Client Components
-- Server-only data fetching with `server-only` package
-- Loading states (loading.tsx convention)
-- Error boundaries (error.tsx convention)
-- Route groups (parenthesized folders don't add URL segments)
-- Tailwind v4 @theme inline for design tokens
-- Custom CSS properties as Tailwind utilities
-- Garment-domain design token naming
+- Server-only data fetching
+- Tailwind v4 @theme inline design tokens
+- Garment-domain naming (seam, tape, tag, linen, dust)
 - Hang-tag clipPath shape
 - Closet rod timeline metaphor
 - Tape measure progress visualization
 - Woven-label typography (tracked uppercase mono)
+- Dark mode (CSS custom properties, hydration-safe, flash prevention)
+- localStorage theme persistence
+- OS prefers-color-scheme detection
+- Server Actions (mutations)
+- Zod validation (client + server)
+- Cloudinary (image hosting, CDN, transformations)
+- Sharp (server-side image optimization, WebP conversion)
+- Gemini Vision AI (structured JSON output, clothing analysis)
+- AI duplicate detection (comparing photos against existing items)
+- Wear tracking (WearLog model, automatic + manual logging)
+- FormData handling in Server Actions
 
 ---
 
@@ -805,79 +1044,71 @@ None. Auth flow works. Dashboard renders with real session data.
 
 - ✅ Dashboard layout (sidebar + navbar)
 - ✅ Dashboard page (server-rendered, real session)
-- ✅ Dashboard components (StatTag, TapeProgress, GettingStarted, ActivityRail, QuickAddButton)
-- ✅ Loading states (skeletons)
+- ✅ Dashboard components
+- ✅ Loading states
 - ✅ Error boundaries
-- ✅ Wardrobe page (empty state + filters)
-- ✅ Outfits page (empty state)
-- ✅ Calendar page (month nav + empty state)
-- ✅ Analytics page (stat placeholders + empty state)
+- ✅ Placeholder pages (wardrobe, outfits, calendar, analytics)
 - ✅ No hardcoded/mock data
+- ✅ Dark/light mode toggle
 
 ---
 
-## Phase 4 — Wardrobe
+## Phase 4 — Wardrobe CRUD + AI ✅
 
-- Add ClothingItem model to Prisma
-- Run migration
-- Upload Clothing (Cloudinary + Sharp)
-- CRUD operations (Server Actions)
-- Categories + Subcategories
-- Search
-- Filter by color, season, occasion
-
----
-
-## Phase 5 — AI
-
-Gemini Vision
-
-- Clothing Detection
-- Color Detection
-- Material Detection
-- Sleeve Detection
-- Season Detection
-
-Persist results in PostgreSQL.
+- ✅ ClothingItem model
+- ✅ WearLog model
+- ✅ Cloudinary + Sharp setup
+- ✅ Gemini Vision integration
+- ✅ AI clothing analysis
+- ✅ AI duplicate detection
+- ✅ Smart upload flow (photo → analyze → review → save)
+- ✅ Wear logging (automatic + manual)
+- ✅ Wardrobe grid with search + filters
+- ✅ Item detail view
+- ✅ Item edit/delete
+- ✅ Dashboard stats from real DB
 
 ---
 
-## Phase 6 — Recommendations
+## Phase 5 — Outfits (next)
 
-Generate outfits using:
-
-- Weather
-- Wear History
-- Wardrobe Inventory
-- Season
+- Add Outfit + OutfitItem models
+- Create outfit from wardrobe items
+- AI outfit suggestions
+- Outfit detail view
 
 ---
 
-## Phase 7 — History
+## Phase 6 — Calendar
 
-- Wear History
-- Outfit History
-- Calendar integration
+- Visual timeline of what was worn when
+- Click date → see outfit
+- Log outfit for specific date
+
+---
+
+## Phase 7 — Analytics
+
+- Cost per wear
+- Least/most worn items
+- Category/color distribution
+- Wear frequency over time
 
 ---
 
 ## Phase 8 — Notifications
 
-- Browser Notifications
-- Email Reminders
+- Browser push notifications
+- "You haven't worn X in 30 days"
+- Weather-based suggestions
 
 ---
 
-## Phase 9 — Analytics
+## Phase 9 — AI Suggestions
 
-PostHog
-
-Track:
-
-- Uploads
-- Recommendations
-- Searches
-- DAU
+- Weather API integration
+- Occasion-based suggestions
+- Style learning from wear patterns
 
 ---
 
@@ -890,8 +1121,6 @@ Track:
 ---
 
 ## Phase 11 — Deployment
-
-Deploy:
 
 - Vercel
 - Neon
