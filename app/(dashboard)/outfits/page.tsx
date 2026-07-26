@@ -1,4 +1,4 @@
-import { Layers, Plus, Star, Shirt } from "lucide-react";
+import { Layers, Plus, Star, Shirt, Camera } from "lucide-react";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
@@ -43,13 +43,22 @@ export default async function OutfitsPage() {
             SAVED COMBINATIONS
           </p>
         </div>
-        <Link
-          href="/outfits/new"
-          className="flex items-center gap-1.5 bg-rose text-paper text-[13px] font-medium px-4 h-9 rounded-[10px] hover:bg-crimson transition-colors"
-        >
-          <Plus className="w-4 h-4" strokeWidth={2} />
-          New outfit
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/outfits/new/photo"
+            className="flex items-center gap-1.5 border border-linen bg-paper text-ink text-[13px] font-medium px-4 h-9 rounded-[10px] hover:bg-canvas transition-colors"
+          >
+            <Camera className="w-4 h-4" strokeWidth={2} />
+            From photo
+          </Link>
+          <Link
+            href="/outfits/new"
+            className="flex items-center gap-1.5 bg-rose text-paper text-[13px] font-medium px-4 h-9 rounded-[10px] hover:bg-crimson transition-colors"
+          >
+            <Plus className="w-4 h-4" strokeWidth={2} />
+            New outfit
+          </Link>
+        </div>
       </header>
 
       {outfits.length === 0 ? (
