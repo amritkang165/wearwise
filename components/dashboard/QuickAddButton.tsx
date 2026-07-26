@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, Shirt, Layers } from "lucide-react";
+import { Plus, Shirt, Layers, Camera } from "lucide-react";
 import Link from "next/link";
 
 export function QuickAddButton() {
@@ -44,6 +44,14 @@ export function QuickAddButton() {
           >
             <Layers className="w-4 h-4 text-dust" strokeWidth={1.75} />
             Create an outfit
+          </Link>
+          <div className="h-px bg-seam mx-4" />
+          <Link
+            href="/outfits/new/photo"
+            className="flex items-center gap-2.5 px-4 py-3 text-[13.5px] text-ink hover:bg-canvas transition-colors"
+          >
+            <Camera className="w-4 h-4 text-dust" strokeWidth={1.75} />
+            Outfit from photo
           </Link>
         </div>
       )}
