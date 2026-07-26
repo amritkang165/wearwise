@@ -15,6 +15,7 @@ import {
 import { analyzeClothingImage, type AnalyzedClothing } from "@/actions/analyze";
 import { checkForDuplicate } from "@/actions/duplicate-check";
 import { createItemsAndOutfit } from "@/actions/create-items-and-outfit";
+import { compressImageToBase64 } from "@/lib/compress-image";
 
 type Step = "upload" | "analyzing" | "review";
 
@@ -64,15 +65,14 @@ export function OutfitPhotoUploader() {
     setAnalyzingDetail("Reading your outfit photo...");
 
     try {
-      const arrayBuffer = await image.file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const base64 = await compressImageToBase64(image.file);
 
       setAnalyzingDetail("AI is identifying each item...");
-      const analyzedItems = await analyzeClothingImage(buffer, image.file.type);
+      const analyzedItems = await analyzeClothingImage(base64, image.file.type);
 
       setAnalyzingDetail(`Found ${analyzedItems.length} item${analyzedItems.length !== 1 ? "s" : ""}. Checking your wardrobe...`);
 
-      const dupResults = await checkForDuplicate(buffer, image.file.type);
+      const dupResults = await checkForDuplicate(base64, image.file.type);
 
       const detected: DetectedItem[] = [];
 

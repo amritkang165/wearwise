@@ -16,6 +16,7 @@ import { analyzeClothingImage, type AnalyzedClothing } from "@/actions/analyze";
 import { checkForDuplicate } from "@/actions/duplicate-check";
 import { createClothingItem } from "@/actions/wardrobe";
 import { logWearForItems } from "@/actions/wear-log";
+import { compressImageToBase64 } from "@/lib/compress-image";
 import {
   CATEGORIES,
   COLORS,
@@ -121,17 +122,16 @@ export function SmartUploader() {
       const image = images[i];
 
       try {
-        const arrayBuffer = await image.file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const base64 = await compressImageToBase64(image.file);
 
         // Analyze with AI — returns array of items from one photo
         setAnalyzingDetail("AI is reading the photo...");
-        const analyzedItems = await analyzeClothingImage(buffer, image.file.type);
+        const analyzedItems = await analyzeClothingImage(base64, image.file.type);
 
         setAnalyzingDetail(`Found ${analyzedItems.length} item${analyzedItems.length > 1 ? "s" : ""}. Checking for duplicates...`);
 
         // Check duplicates for each detected item
-        const dupResults = await checkForDuplicate(buffer, image.file.type);
+        const dupResults = await checkForDuplicate(base64, image.file.type);
 
         for (let j = 0; j < analyzedItems.length; j++) {
           const analyzed = analyzedItems[j];

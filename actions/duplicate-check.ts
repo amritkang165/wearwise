@@ -14,7 +14,7 @@ export interface DuplicateCheckResult {
 }
 
 export async function checkForDuplicate(
-  imageBuffer: Buffer,
+  base64Data: string,
   mimeType: string
 ): Promise<DuplicateCheckResult[]> {
   const session = await requireSession();
@@ -42,8 +42,6 @@ export async function checkForDuplicate(
         `[${i}] "${item.name}" — ${item.category}${item.subcategory ? "/" + item.subcategory : ""}, colors: [${item.colors.join(", ")}]${item.brand ? ", brand: " + item.brand : ""}${item.notes ? ", notes: " + item.notes : ""}`
     )
     .join("\n");
-
-  const base64Data = imageBuffer.toString("base64");
 
   const response = await ai.models.generateContent({
     model: "gemini-2.0-flash",

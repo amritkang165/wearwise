@@ -49,10 +49,9 @@ const emptyItem: AnalyzedClothing = {
 };
 
 export async function analyzeClothingImage(
-  imageBuffer: Buffer,
+  base64Data: string,
   mimeType: string
 ): Promise<AnalyzedClothing[]> {
-  const base64Data = imageBuffer.toString("base64");
 
   const response = await ai.models.generateContent({
     model: "gemini-2.0-flash",
