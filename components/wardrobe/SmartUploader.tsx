@@ -13,7 +13,7 @@ import {
   Images,
 } from "lucide-react";
 import { analyzeAndMatch, type AnalyzedClothing } from "@/actions/analyze";
-import { createClothingItem } from "@/actions/wardrobe";
+import { createClothingItemsBulk } from "@/actions/wardrobe";
 import { logWearForItems } from "@/actions/wear-log";
 import { compressImageToBase64 } from "@/lib/compress-image";
 import {
@@ -196,37 +196,31 @@ export function SmartUploader() {
         await logWearForItems(duplicates.map((d) => d.matchedId));
       }
 
-      // Create new items
-      for (const item of newItems) {
-        if (item.type !== "new") continue;
-        const formData = new FormData();
-        formData.append("name", item.data.name);
-        formData.append("category", item.data.category);
-        formData.append("subcategory", item.data.subcategory);
-        formData.append("brand", "");
-        formData.append("colors", JSON.stringify(item.data.colors));
-        formData.append("size", "");
-        formData.append("seasons", JSON.stringify(item.data.seasons));
-        formData.append("occasions", JSON.stringify(item.data.occasions));
-        formData.append("purchaseDate", "");
-        formData.append("purchasePrice", "");
-        formData.append(
-          "notes",
-          [
+      // Create all new items in one server call
+      if (newItems.length > 0) {
+        const bulkItems = newItems.map((item) => ({
+          name: item.data.name,
+          category: item.data.category,
+          subcategory: item.data.subcategory,
+          colors: item.data.colors,
+          seasons: item.data.seasons,
+          occasions: item.data.occasions,
+          notes: [
             item.data.material ? `Material: ${item.data.material}` : "",
             item.data.fit ? `Fit: ${item.data.fit}` : "",
             item.data.details ? `Details: ${item.data.details}` : "",
           ]
             .filter(Boolean)
-            .join(" · ")
-        );
-        formData.append("images", item.image.file);
+            .join(" · "),
+          imageFile: item.image.file,
+        }));
 
-        await createClothingItem(formData);
+        await createClothingItemsBulk(bulkItems);
       }
 
       router.push("/wardrobe");
-    } catch {
+    } catch (e) {
+      console.error("Save failed:", e);
       setIsSaving(false);
     }
   };

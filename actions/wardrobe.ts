@@ -142,6 +142,71 @@ export async function updateClothingItem(id: string, formData: FormData) {
   redirect(`/wardrobe/${id}`);
 }
 
+export interface BulkItemInput {
+  name: string;
+  category: string;
+  subcategory?: string;
+  brand?: string;
+  colors: string[];
+  size?: string;
+  seasons: string[];
+  occasions: string[];
+  purchaseDate?: string;
+  purchasePrice?: number;
+  notes?: string;
+  imageFile: File;
+}
+
+export async function createClothingItemsBulk(items: BulkItemInput[]) {
+  const session = await requireSession();
+  const created: { id: string; name: string }[] = [];
+
+  for (const item of items) {
+    const parsed = clothingItemSchema.safeParse({
+      name: item.name,
+      category: item.category,
+      subcategory: item.subcategory ?? "",
+      brand: item.brand ?? "",
+      colors: item.colors,
+      size: item.size ?? "",
+      seasons: item.seasons,
+      occasions: item.occasions,
+      purchaseDate: item.purchaseDate ?? "",
+      purchasePrice: item.purchasePrice ?? undefined,
+      notes: item.notes ?? "",
+    });
+
+    if (!parsed.success) continue;
+
+    const imageUrls =
+      item.imageFile.size > 0 ? await processImages([item.imageFile]) : [];
+
+    const record = await prisma.clothingItem.create({
+      data: {
+        userId: session.user.id,
+        name: parsed.data.name,
+        category: parsed.data.category,
+        subcategory: parsed.data.subcategory || null,
+        brand: parsed.data.brand || null,
+        colors: parsed.data.colors,
+        size: parsed.data.size || null,
+        seasons: parsed.data.seasons,
+        occasions: parsed.data.occasions,
+        purchaseDate: parsed.data.purchaseDate
+          ? new Date(parsed.data.purchaseDate)
+          : null,
+        purchasePrice: parsed.data.purchasePrice || null,
+        notes: parsed.data.notes || null,
+        images: imageUrls,
+      },
+    });
+
+    created.push({ id: record.id, name: record.name });
+  }
+
+  return { created };
+}
+
 export async function deleteClothingItem(id: string) {
   const session = await requireSession();
 
