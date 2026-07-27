@@ -12,8 +12,7 @@ import {
   Shirt,
   Camera,
 } from "lucide-react";
-import { analyzeClothingImage, type AnalyzedClothing } from "@/actions/analyze";
-import { checkForDuplicate } from "@/actions/duplicate-check";
+import { analyzeAndMatch, type AnalyzedClothing } from "@/actions/analyze";
 import { createItemsAndOutfit } from "@/actions/create-items-and-outfit";
 import { compressImageToBase64 } from "@/lib/compress-image";
 
@@ -68,17 +67,15 @@ export function OutfitPhotoUploader() {
       const base64 = await compressImageToBase64(image.file);
 
       setAnalyzingDetail("AI is identifying each item...");
-      const analyzedItems = await analyzeClothingImage(base64, image.file.type);
+      const result = await analyzeAndMatch(base64, image.file.type);
 
-      setAnalyzingDetail(`Found ${analyzedItems.length} item${analyzedItems.length !== 1 ? "s" : ""}. Checking your wardrobe...`);
-
-      const dupResults = await checkForDuplicate(base64, image.file.type);
+      setAnalyzingDetail(`Found ${result.items.length} item${result.items.length !== 1 ? "s" : ""}.`);
 
       const detected: DetectedItem[] = [];
 
-      for (let i = 0; i < analyzedItems.length; i++) {
-        const analyzed = analyzedItems[i];
-        const dup = dupResults[i];
+      for (let i = 0; i < result.items.length; i++) {
+        const analyzed = result.items[i];
+        const dup = result.duplicates[i];
 
         if (dup?.isDuplicate && dup.matchedItemId) {
           detected.push({
@@ -99,7 +96,7 @@ export function OutfitPhotoUploader() {
       }
 
       setItems(detected);
-      const firstCategory = analyzedItems[0]?.category ?? "outfit";
+      const firstCategory = result.items[0]?.category ?? "outfit";
       setOutfitName(`${firstCategory.charAt(0).toUpperCase() + firstCategory.slice(1)} outfit`);
       setStep("review");
     } catch {

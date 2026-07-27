@@ -12,8 +12,7 @@ import {
   Copy,
   Images,
 } from "lucide-react";
-import { analyzeClothingImage, type AnalyzedClothing } from "@/actions/analyze";
-import { checkForDuplicate } from "@/actions/duplicate-check";
+import { analyzeAndMatch, type AnalyzedClothing } from "@/actions/analyze";
 import { createClothingItem } from "@/actions/wardrobe";
 import { logWearForItems } from "@/actions/wear-log";
 import { compressImageToBase64 } from "@/lib/compress-image";
@@ -124,18 +123,14 @@ export function SmartUploader() {
       try {
         const base64 = await compressImageToBase64(image.file);
 
-        // Analyze with AI — returns array of items from one photo
         setAnalyzingDetail("AI is reading the photo...");
-        const analyzedItems = await analyzeClothingImage(base64, image.file.type);
+        const result = await analyzeAndMatch(base64, image.file.type);
 
-        setAnalyzingDetail(`Found ${analyzedItems.length} item${analyzedItems.length > 1 ? "s" : ""}. Checking for duplicates...`);
+        setAnalyzingDetail(`Found ${result.items.length} item${result.items.length > 1 ? "s" : ""}.`);
 
-        // Check duplicates for each detected item
-        const dupResults = await checkForDuplicate(base64, image.file.type);
-
-        for (let j = 0; j < analyzedItems.length; j++) {
-          const analyzed = analyzedItems[j];
-          const dup = dupResults[j];
+        for (let j = 0; j < result.items.length; j++) {
+          const analyzed = result.items[j];
+          const dup = result.duplicates[j];
 
           if (dup?.isDuplicate && dup.matchedItemId) {
             allResults.push({
