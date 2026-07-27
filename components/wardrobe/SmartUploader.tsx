@@ -165,6 +165,39 @@ export function SmartUploader() {
       }
     }
 
+    // Cross-image dedup: if two new items in the same batch look the same, mark the later one as duplicate
+    const newIndices = allResults
+      .map((r, i) => (r.type === "new" ? i : -1))
+      .filter((i) => i >= 0);
+
+    for (let k = 0; k < newIndices.length; k++) {
+      const curr = allResults[newIndices[k]];
+      if (curr.type !== "new") continue;
+
+      for (let m = 0; m < k; m++) {
+        const prev = allResults[newIndices[m]];
+        if (prev.type !== "new") continue;
+
+        const sameCategory = curr.data.category === prev.data.category;
+        const currColors = curr.data.colors.map((c) => c.toLowerCase());
+        const prevColors = prev.data.colors.map((c) => c.toLowerCase());
+        const sameColors =
+          currColors.length > 0 &&
+          prevColors.length > 0 &&
+          currColors.some((c) => prevColors.includes(c));
+
+        if (sameCategory && sameColors) {
+          allResults[newIndices[k]] = {
+            type: "duplicate",
+            image: curr.image,
+            matchedId: "__batch_" + newIndices[m],
+            matchedName: prev.data.name,
+          };
+          break;
+        }
+      }
+    }
+
     setResults(allResults);
     setStep("review");
   };
@@ -191,7 +224,10 @@ export function SmartUploader() {
     setSaveError(null);
     try {
       const newItems = results.filter((r) => r.type === "new");
-      const duplicates = results.filter((r) => r.type === "duplicate");
+      const duplicates = results.filter(
+        (r): r is Extract<AnalyzedItem, { type: "duplicate" }> =>
+          r.type === "duplicate" && !r.matchedId.startsWith("__batch_")
+      );
 
       if (duplicates.length > 0) {
         await logWearForItems(duplicates.map((d) => d.matchedId));
@@ -233,7 +269,8 @@ export function SmartUploader() {
   };
 
   const newCount = results.filter((r) => r.type === "new").length;
-  const dupCount = results.filter((r) => r.type === "duplicate").length;
+  const dupCount = results.filter((r) => r.type === "duplicate" && !r.matchedId.startsWith("__batch_")).length;
+  const batchDupCount = results.filter((r) => r.type === "duplicate" && r.matchedId.startsWith("__batch_")).length;
 
   // Step 1: Upload
   if (step === "upload") {
@@ -367,6 +404,12 @@ export function SmartUploader() {
             {dupCount > 0 && `${dupCount} duplicate${dupCount > 1 ? "s" : ""} found`}
             {dupCount > 0 && newCount > 0 && " · "}
             {newCount > 0 && `${newCount} new item${newCount > 1 ? "s" : ""} to add`}
+            {batchDupCount > 0 && (
+              <>
+                {(dupCount > 0 || newCount > 0) && " · "}
+                {batchDupCount} same item{batchDupCount > 1 ? "s" : ""} merged
+              </>
+            )}
           </p>
         </div>
         <button
@@ -392,7 +435,7 @@ export function SmartUploader() {
             ALREADY IN YOUR WARDROBE — WILL LOG AS WORN
           </p>
           {results.map((item, index) => {
-            if (item.type !== "duplicate") return null;
+            if (item.type !== "duplicate" || item.matchedId.startsWith("__batch_")) return null;
             return (
               <div
                 key={index}
@@ -415,6 +458,44 @@ export function SmartUploader() {
                   </p>
                 </div>
                 <Check className="w-4 h-4 text-rose shrink-0" />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Batch duplicates */}
+      {batchDupCount > 0 && (
+        <div className="space-y-2">
+          <p
+            className="text-[10px] tracking-[0.14em] uppercase text-ash"
+            style={{ fontFamily: "var(--font-label)" }}
+          >
+            SAME ITEM IN MULTIPLE PHOTOS — SKIPPED
+          </p>
+          {results.map((item, index) => {
+            if (item.type !== "duplicate" || !item.matchedId.startsWith("__batch_")) return null;
+            return (
+              <div
+                key={index}
+                className="flex items-center gap-3 rounded-xl border border-linen bg-canvas/50 p-3 opacity-60"
+              >
+                <div className="w-14 h-14 rounded-lg overflow-hidden border border-linen shrink-0">
+                  <img
+                    src={item.image.preview}
+                    alt={item.matchedName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-ink truncate">
+                    {item.matchedName}
+                  </p>
+                  <p className="text-[11px] text-ash flex items-center gap-1 mt-0.5">
+                    <Copy className="w-3 h-3" />
+                    Same item — only adding once
+                  </p>
+                </div>
               </div>
             );
           })}
