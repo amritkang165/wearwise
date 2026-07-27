@@ -154,7 +154,8 @@ export interface BulkItemInput {
   purchaseDate?: string;
   purchasePrice?: number;
   notes?: string;
-  imageFile: File;
+  imageBase64: string;
+  mimeType: string;
 }
 
 export async function createClothingItemsBulk(items: BulkItemInput[]) {
@@ -178,8 +179,27 @@ export async function createClothingItemsBulk(items: BulkItemInput[]) {
 
     if (!parsed.success) continue;
 
-    const imageUrls =
-      item.imageFile.size > 0 ? await processImages([item.imageFile]) : [];
+    let imageUrls: string[] = [];
+    if (item.imageBase64) {
+      const buffer = Buffer.from(item.imageBase64, "base64");
+      const optimized = await sharp(buffer)
+        .resize(800, 800, { fit: "inside" })
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "wearwise" },
+          (error, result) => {
+            if (error || !result) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(optimized);
+      });
+
+      imageUrls = [result.secure_url];
+    }
 
     const record = await prisma.clothingItem.create({
       data: {

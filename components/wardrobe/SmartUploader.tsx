@@ -92,6 +92,7 @@ export function SmartUploader() {
   const [results, setResults] = useState<AnalyzedItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [analyzingIndex, setAnalyzingIndex] = useState(0);
   const [analyzingDetail, setAnalyzingDetail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -187,33 +188,38 @@ export function SmartUploader() {
 
   const saveAll = async () => {
     setIsSaving(true);
+    setSaveError(null);
     try {
       const newItems = results.filter((r) => r.type === "new");
       const duplicates = results.filter((r) => r.type === "duplicate");
 
-      // Log wears for duplicates
       if (duplicates.length > 0) {
         await logWearForItems(duplicates.map((d) => d.matchedId));
       }
 
-      // Create all new items in one server call
       if (newItems.length > 0) {
-        const bulkItems = newItems.map((item) => ({
-          name: item.data.name,
-          category: item.data.category,
-          subcategory: item.data.subcategory,
-          colors: item.data.colors,
-          seasons: item.data.seasons,
-          occasions: item.data.occasions,
-          notes: [
-            item.data.material ? `Material: ${item.data.material}` : "",
-            item.data.fit ? `Fit: ${item.data.fit}` : "",
-            item.data.details ? `Details: ${item.data.details}` : "",
-          ]
-            .filter(Boolean)
-            .join(" · "),
-          imageFile: item.image.file,
-        }));
+        const bulkItems = await Promise.all(
+          newItems.map(async (item) => {
+            const imageBase64 = await compressImageToBase64(item.image.file);
+            return {
+              name: item.data.name,
+              category: item.data.category,
+              subcategory: item.data.subcategory,
+              colors: item.data.colors,
+              seasons: item.data.seasons,
+              occasions: item.data.occasions,
+              notes: [
+                item.data.material ? `Material: ${item.data.material}` : "",
+                item.data.fit ? `Fit: ${item.data.fit}` : "",
+                item.data.details ? `Details: ${item.data.details}` : "",
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              imageBase64,
+              mimeType: item.image.file.type || "image/jpeg",
+            };
+          })
+        );
 
         await createClothingItemsBulk(bulkItems);
       }
@@ -221,6 +227,7 @@ export function SmartUploader() {
       router.push("/wardrobe");
     } catch (e) {
       console.error("Save failed:", e);
+      setSaveError(e instanceof Error ? e.message : "Save failed. Check the server logs.");
       setIsSaving(false);
     }
   };
@@ -562,6 +569,12 @@ export function SmartUploader() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {saveError && (
+        <div className="rounded-xl border border-crimson/30 bg-crimson/5 p-4">
+          <p className="text-[13px] text-crimson font-medium">{saveError}</p>
         </div>
       )}
 
