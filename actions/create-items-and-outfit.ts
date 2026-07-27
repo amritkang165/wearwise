@@ -58,5 +58,27 @@ export async function createItemsAndOutfit(
     select: { id: true },
   });
 
+  // Auto-log wear since the user just wore this outfit in the photo
+  await prisma.outfitLog.create({
+    data: {
+      userId: session.user.id,
+      outfitId: outfit.id,
+    },
+  });
+
+  // Also log wear for each individual clothing item
+  for (const itemId of allItemIds) {
+    await prisma.wearLog.create({
+      data: {
+        userId: session.user.id,
+        clothingItemId: itemId,
+      },
+    });
+    await prisma.clothingItem.update({
+      where: { id: itemId },
+      data: { wearCount: { increment: 1 } },
+    });
+  }
+
   return outfit.id;
 }

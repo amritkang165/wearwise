@@ -1,7 +1,8 @@
-import { Layers, Plus, Star, Shirt, Camera } from "lucide-react";
+import { Layers, Plus, Camera } from "lucide-react";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
+import { OutfitCard } from "@/components/outfits/OutfitCard";
 
 export const metadata = {
   title: "Outfits — WearWise",
@@ -81,85 +82,21 @@ export default async function OutfitsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {outfits.map((outfit) => {
-            const lastWorn = outfit.logs[0]?.date;
+            const lastWorn = outfit.logs[0]?.date ?? null;
+            const previewImages = outfit.items.slice(0, 4).map((oi) =>
+              oi.clothingItem.images.length > 0 ? oi.clothingItem.images[0] : ""
+            );
             return (
-              <Link
+              <OutfitCard
                 key={outfit.id}
-                href={`/outfits/${outfit.id}`}
-                className="group block rounded-xl border border-linen bg-paper overflow-hidden hover:shadow-sm transition-all"
-              >
-                {/* Item grid preview */}
-                <div className="grid grid-cols-2 gap-px bg-linen">
-                  {outfit.items.slice(0, 4).map((oi) => (
-                    <div key={oi.id} className="aspect-square bg-canvas relative">
-                      {oi.clothingItem.images.length > 0 ? (
-                        <img
-                          src={oi.clothingItem.images[0]}
-                          alt={oi.clothingItem.name}
-                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Shirt className="w-6 h-6 text-dust/30" strokeWidth={1} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {/* Fill empty slots */}
-                  {outfit.items.length < 4 &&
-                    Array.from({ length: Math.min(4 - outfit.items.length, 4) }).map(
-                      (_, i) => (
-                        <div
-                          key={`empty-${i}`}
-                          className="aspect-square bg-canvas flex items-center justify-center"
-                        >
-                          <Plus className="w-4 h-4 text-dust/20" />
-                        </div>
-                      )
-                    )}
-                </div>
-
-                <div className="p-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-[14px] font-medium text-ink truncate flex-1">
-                      {outfit.name}
-                    </h3>
-                    {outfit.isFavorite && (
-                      <Star className="w-3.5 h-3.5 text-rose fill-rose shrink-0" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p
-                      className="text-[10px] tracking-[0.08em] text-ash"
-                      style={{ fontFamily: "var(--font-label)" }}
-                    >
-                      {outfit.items.length} item{outfit.items.length !== 1 ? "s" : ""}
-                    </p>
-                    {outfit.occasion && (
-                      <>
-                        <span className="text-dust">·</span>
-                        <p
-                          className="text-[10px] tracking-[0.08em] text-ash"
-                          style={{ fontFamily: "var(--font-label)" }}
-                        >
-                          {outfit.occasion}
-                        </p>
-                      </>
-                    )}
-                    {lastWorn && (
-                      <>
-                        <span className="text-dust">·</span>
-                        <p
-                          className="text-[10px] tracking-[0.08em] text-ash"
-                          style={{ fontFamily: "var(--font-label)" }}
-                        >
-                          Worn {new Date(lastWorn).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </Link>
+                id={outfit.id}
+                name={outfit.name}
+                occasion={outfit.occasion}
+                isFavorite={outfit.isFavorite}
+                itemCount={outfit.items.length}
+                images={previewImages}
+                lastWorn={lastWorn}
+              />
             );
           })}
         </div>
