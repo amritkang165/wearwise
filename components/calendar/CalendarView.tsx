@@ -23,6 +23,23 @@ function formatDateKey(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+function getAllImages(dayData: CalendarDay): string[] {
+  const imgs: string[] = [];
+  for (const log of dayData.outfitLogs) {
+    for (const item of log.outfit.items) {
+      if (item.clothingItem.images.length > 0) {
+        imgs.push(item.clothingItem.images[0]);
+      }
+    }
+  }
+  for (const log of dayData.wearLogs) {
+    if (log.clothingItem.images.length > 0) {
+      imgs.push(log.clothingItem.images[0]);
+    }
+  }
+  return [...new Set(imgs)];
+}
+
 interface CalendarViewProps {
   initialYear: number;
   initialMonth: number;
@@ -67,10 +84,9 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
   };
 
   const selectedData = selectedDay ? data[selectedDay] : null;
-  const hasWearLogs = selectedData && (selectedData.wearLogs.length > 0 || selectedData.outfitLogs.length > 0);
 
   return (
-    <div className="max-w-[960px] mx-auto px-4 py-10">
+    <div className="max-w-[1100px] mx-auto px-4 py-10">
       <header className="mb-8">
         <h1 className="text-[26px] font-semibold text-ink tracking-tight">
           Calendar
@@ -83,7 +99,7 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
         {/* Calendar grid */}
         <div className="bg-paper border border-linen rounded-[10px] overflow-hidden">
           {/* Month nav */}
@@ -127,7 +143,7 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
           {/* Day cells */}
           <div className="grid grid-cols-7">
             {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="aspect-square" />
+              <div key={`empty-${i}`} className="min-h-[90px] border-b border-r border-linen/50" />
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
@@ -136,38 +152,56 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
               const hasLogs = dayData && (dayData.wearLogs.length > 0 || dayData.outfitLogs.length > 0);
               const isSelected = selectedDay === key;
               const isToday = key === todayKey;
+              const images = hasLogs ? getAllImages(dayData) : [];
+              const extraCount = images.length > 3 ? images.length - 3 : 0;
 
               return (
                 <button
                   key={day}
                   onClick={() => setSelectedDay(isSelected ? null : key)}
-                  className={`aspect-square relative flex flex-col items-center justify-center gap-1 transition-all ${
+                  className={`min-h-[90px] relative flex flex-col p-1.5 border-b border-r border-linen/50 text-left transition-all ${
                     isSelected
-                      ? "bg-rose/10"
+                      ? "bg-rose/5 ring-1 ring-inset ring-rose/20"
                       : hasLogs
-                        ? "hover:bg-canvas/80"
-                        : "hover:bg-canvas/50"
+                        ? "hover:bg-canvas/60"
+                        : "hover:bg-canvas/30"
                   }`}
                 >
                   <span
-                    className={`text-[13px] tabular-nums ${
+                    className={`text-[11px] tabular-nums self-end ${
                       isToday
-                        ? "w-6 h-6 rounded-full bg-rose text-paper flex items-center justify-center font-semibold"
+                        ? "w-5 h-5 rounded-full bg-rose text-paper flex items-center justify-center font-semibold text-[11px]"
                         : isSelected
                           ? "text-rose font-semibold"
-                          : "text-ink"
+                          : hasLogs
+                            ? "text-ink font-medium"
+                            : "text-ash"
                     }`}
                   >
                     {day}
                   </span>
-                  {hasLogs && (
-                    <div className="flex gap-0.5">
-                      {dayData.wearLogs.length > 0 && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-dust" />
-                      )}
-                      {dayData.outfitLogs.length > 0 && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-rose" />
-                      )}
+
+                  {hasLogs && images.length > 0 && (
+                    <div className="flex-1 flex items-end mt-1">
+                      <div className="flex gap-0.5">
+                        {images.slice(0, 3).map((img, j) => (
+                          <div
+                            key={j}
+                            className="w-7 h-7 rounded-[4px] overflow-hidden border border-linen"
+                          >
+                            <img
+                              src={img}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                        {extraCount > 0 && (
+                          <div className="w-7 h-7 rounded-[4px] bg-canvas border border-linen flex items-center justify-center">
+                            <span className="text-[9px] font-medium text-ash">+{extraCount}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </button>
@@ -180,59 +214,41 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
         <div className="space-y-4">
           {selectedDay && selectedData ? (
             <div className="bg-paper border border-linen rounded-[10px] p-4 space-y-4">
-              <div>
-                <p
-                  className="text-[11px] tracking-[0.14em] uppercase text-ash"
-                  style={{ fontFamily: "var(--font-label)" }}
-                >
-                  {new Date(selectedDay + "T12:00:00").toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
+              <p
+                className="text-[11px] tracking-[0.14em] uppercase text-ash"
+                style={{ fontFamily: "var(--font-label)" }}
+              >
+                {new Date(selectedDay + "T12:00:00").toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
 
-              {/* Outfit logs */}
               {selectedData.outfitLogs.length > 0 && (
                 <div className="space-y-2">
                   <p
                     className="text-[10px] tracking-[0.14em] uppercase text-ash"
                     style={{ fontFamily: "var(--font-label)" }}
                   >
-                    OUTFITS WORN
+                    OUTFITS
                   </p>
                   {selectedData.outfitLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="rounded-lg border border-linen p-3 space-y-2"
-                    >
+                    <div key={log.id} className="rounded-lg border border-linen p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <Layers className="w-3.5 h-3.5 text-rose" />
-                        <p className="text-[13px] font-medium text-ink truncate">
-                          {log.outfit.name}
-                        </p>
+                        <p className="text-[13px] font-medium text-ink truncate">{log.outfit.name}</p>
                       </div>
                       {log.outfit.occasion && (
-                        <p
-                          className="text-[10px] tracking-[0.08em] text-ash"
-                          style={{ fontFamily: "var(--font-label)" }}
-                        >
+                        <p className="text-[10px] tracking-[0.08em] text-ash" style={{ fontFamily: "var(--font-label)" }}>
                           {log.outfit.occasion}
                         </p>
                       )}
                       <div className="flex gap-1.5">
-                        {log.outfit.items.map((oi, i) => (
-                          <div
-                            key={i}
-                            className="w-10 h-10 rounded-md overflow-hidden border border-linen"
-                          >
+                        {log.outfit.items.map((oi, j) => (
+                          <div key={j} className="w-10 h-10 rounded-md overflow-hidden border border-linen">
                             {oi.clothingItem.images.length > 0 ? (
-                              <img
-                                src={oi.clothingItem.images[0]}
-                                alt={oi.clothingItem.name}
-                                className="w-full h-full object-cover"
-                              />
+                              <img src={oi.clothingItem.images[0]} alt={oi.clothingItem.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full bg-canvas flex items-center justify-center">
                                 <Shirt className="w-3.5 h-3.5 text-dust/40" strokeWidth={1} />
@@ -246,27 +262,19 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
                 </div>
               )}
 
-              {/* Individual wear logs */}
               {selectedData.wearLogs.length > 0 && (
                 <div className="space-y-2">
                   <p
                     className="text-[10px] tracking-[0.14em] uppercase text-ash"
                     style={{ fontFamily: "var(--font-label)" }}
                   >
-                    ITEMS WORN
+                    ITEMS
                   </p>
                   {selectedData.wearLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="flex items-center gap-3 rounded-lg border border-linen p-2.5"
-                    >
+                    <div key={log.id} className="flex items-center gap-3 rounded-lg border border-linen p-2.5">
                       <div className="w-9 h-9 rounded-md overflow-hidden border border-linen shrink-0">
                         {log.clothingItem.images.length > 0 ? (
-                          <img
-                            src={log.clothingItem.images[0]}
-                            alt={log.clothingItem.name}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={log.clothingItem.images[0]} alt={log.clothingItem.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full bg-canvas flex items-center justify-center">
                             <Shirt className="w-3.5 h-3.5 text-dust/40" strokeWidth={1} />
@@ -274,13 +282,8 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-ink truncate">
-                          {log.clothingItem.name}
-                        </p>
-                        <p
-                          className="text-[10px] tracking-[0.08em] text-ash"
-                          style={{ fontFamily: "var(--font-label)" }}
-                        >
+                        <p className="text-[13px] font-medium text-ink truncate">{log.clothingItem.name}</p>
+                        <p className="text-[10px] tracking-[0.08em] text-ash" style={{ fontFamily: "var(--font-label)" }}>
                           {log.clothingItem.category}
                         </p>
                       </div>
@@ -290,45 +293,16 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
               )}
             </div>
           ) : selectedDay ? (
-            <div className="bg-paper border border-linen rounded-[10px] p-6 flex flex-col items-center justify-center text-center">
+            <div className="bg-paper border border-linen rounded-[10px] p-6 text-center">
               <p className="text-[13px] text-ash">Nothing logged this day</p>
             </div>
           ) : (
-            <div className="bg-paper border border-linen rounded-[10px] p-6 flex flex-col items-center justify-center text-center">
-              <Calendar className="w-8 h-8 text-dust/40 mb-3" strokeWidth={1.25} />
-              <p className="text-[13px] text-ash">Select a day to see details</p>
+            <div className="bg-paper border border-linen rounded-[10px] p-6 text-center">
+              <p className="text-[13px] text-ash">Click a day to see details</p>
             </div>
           )}
-
-          {/* Legend */}
-          <div className="bg-paper border border-linen rounded-[10px] p-4 space-y-2">
-            <p
-              className="text-[10px] tracking-[0.14em] uppercase text-ash"
-              style={{ fontFamily: "var(--font-label)" }}
-            >
-              LEGEND
-            </p>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-dust" />
-                <span className="text-[12px] text-ink">Items worn</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-rose" />
-                <span className="text-[12px] text-ink">Outfit worn</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function Calendar(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />
-    </svg>
   );
 }
