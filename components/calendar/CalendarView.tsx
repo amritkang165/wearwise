@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Shirt, Loader2 } from "lucide-react";
-import type { CalendarDay } from "@/actions/calendar";
+import type { CalendarDay, WearLogEntry, OutfitLogEntry } from "@/actions/calendar";
 import { getCalendarData } from "@/actions/calendar";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -19,34 +19,78 @@ function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month - 1, 1).getDay();
 }
 
-function formatDateKey(year: number, month: number, day: number) {
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+function formatDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function todayKey() {
+  return formatDateKey(new Date());
+}
+
+function buildDayMap(wearLogs: WearLogEntry[], outfitLogs: OutfitLogEntry[]): Record<string, CalendarDay> {
+  const days: Record<string, CalendarDay> = {};
+
+  for (const log of wearLogs) {
+    const key = formatDateKey(new Date(log.date));
+    if (!days[key]) days[key] = { date: key, wearLogs: [], outfitLogs: [] };
+    days[key].wearLogs.push(log);
+  }
+
+  for (const log of outfitLogs) {
+    const key = formatDateKey(new Date(log.date));
+    if (!days[key]) days[key] = { date: key, wearLogs: [], outfitLogs: [] };
+    days[key].outfitLogs.push(log);
+  }
+
+  return days;
 }
 
 interface CalendarViewProps {
   initialYear: number;
   initialMonth: number;
-  initialData: Record<string, CalendarDay>;
+  initialWearLogs: WearLogEntry[];
+  initialOutfitLogs: OutfitLogEntry[];
 }
 
-export function CalendarView({ initialYear, initialMonth, initialData }: CalendarViewProps) {
+export function CalendarView({ initialYear, initialMonth, initialWearLogs, initialOutfitLogs }: CalendarViewProps) {
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [data, setData] = useState(initialData);
+  const [rawWearLogs, setRawWearLogs] = useState<WearLogEntry[]>(initialWearLogs);
+  const [rawOutfitLogs, setRawOutfitLogs] = useState<OutfitLogEntry[]>(initialOutfitLogs);
   const [isPending, startTransition] = useTransition();
+
+  // Build day map from raw logs using local timezone
+  const data = useMemo(
+    () => buildDayMap(rawWearLogs, rawOutfitLogs),
+    [rawWearLogs, rawOutfitLogs]
+  );
 
   const loadMonth = (newYear: number, newMonth: number) => {
     startTransition(async () => {
       const fresh = await getCalendarData(newYear, newMonth);
-      setData(fresh);
+      setRawWearLogs(fresh.wearLogs);
+      setRawOutfitLogs(fresh.outfitLogs);
     });
   };
 
+  // Refresh on mount and when tab becomes visible
+  useEffect(() => {
+    loadMonth(year, month);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadMonth(year, month);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const today = todayKey();
 
   const prevMonth = () => {
     const m = month === 1 ? 12 : month - 1;
@@ -70,7 +114,6 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
 
   return (
     <div className="max-w-[768px] mx-auto px-4 py-10">
-      {/* Month nav */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[22px] font-semibold text-ink">
           {MONTH_NAMES[month - 1]} {year}
@@ -92,7 +135,6 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
         </div>
       </div>
 
-      {/* Weekday headers */}
       <div className="grid grid-cols-7 mb-2">
         {WEEKDAYS.map((d, i) => (
           <div
@@ -105,19 +147,18 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
         ))}
       </div>
 
-      {/* Day cells */}
       <div className="grid grid-cols-7">
         {Array.from({ length: firstDay }).map((_, i) => (
           <div key={`empty-${i}`} className="h-11" />
         ))}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
-          const key = formatDateKey(year, month, day);
+          const key = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const dayData = data[key];
           const hasWear = dayData && dayData.wearLogs.length > 0;
           const hasOutfit = dayData && dayData.outfitLogs.length > 0;
           const isSelected = selectedDay === key;
-          const isToday = key === todayKey;
+          const isToday = key === today;
 
           return (
             <button
@@ -147,7 +188,6 @@ export function CalendarView({ initialYear, initialMonth, initialData }: Calenda
         })}
       </div>
 
-      {/* Selected day events */}
       {selectedDay && (
         <div className="mt-6 border-t border-linen pt-4">
           <p className="text-[13px] font-medium text-ink mb-3">

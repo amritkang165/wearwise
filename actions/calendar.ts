@@ -3,32 +3,38 @@
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 
+export interface WearLogEntry {
+  id: string;
+  date: string;
+  clothingItem: {
+    id: string;
+    name: string;
+    category: string;
+    images: string[];
+  };
+}
+
+export interface OutfitLogEntry {
+  id: string;
+  date: string;
+  outfit: {
+    id: string;
+    name: string;
+    occasion: string | null;
+    items: {
+      clothingItem: {
+        id: string;
+        name: string;
+        images: string[];
+      };
+    }[];
+  };
+}
+
 export interface CalendarDay {
   date: string;
-  wearLogs: {
-    id: string;
-    clothingItem: {
-      id: string;
-      name: string;
-      category: string;
-      images: string[];
-    };
-  }[];
-  outfitLogs: {
-    id: string;
-    outfit: {
-      id: string;
-      name: string;
-      occasion: string | null;
-      items: {
-        clothingItem: {
-          id: string;
-          name: string;
-          images: string[];
-        };
-      }[];
-    };
-  }[];
+  wearLogs: WearLogEntry[];
+  outfitLogs: OutfitLogEntry[];
 }
 
 export async function getCalendarData(year: number, month: number) {
@@ -75,19 +81,17 @@ export async function getCalendarData(year: number, month: number) {
     }),
   ]);
 
-  const days: Record<string, CalendarDay> = {};
+  const wearEntries: WearLogEntry[] = wearLogs.map((log) => ({
+    id: log.id,
+    date: log.date.toISOString(),
+    clothingItem: log.clothingItem,
+  }));
 
-  for (const log of wearLogs) {
-    const key = log.date.toISOString().split("T")[0];
-    if (!days[key]) days[key] = { date: key, wearLogs: [], outfitLogs: [] };
-    days[key].wearLogs.push(log);
-  }
+  const outfitEntries: OutfitLogEntry[] = outfitLogs.map((log) => ({
+    id: log.id,
+    date: log.date.toISOString(),
+    outfit: log.outfit,
+  }));
 
-  for (const log of outfitLogs) {
-    const key = log.date.toISOString().split("T")[0];
-    if (!days[key]) days[key] = { date: key, wearLogs: [], outfitLogs: [] };
-    days[key].outfitLogs.push(log);
-  }
-
-  return days;
+  return { wearLogs: wearEntries, outfitLogs: outfitEntries };
 }

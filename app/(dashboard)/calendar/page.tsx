@@ -10,7 +10,7 @@ export default async function CalendarPage() {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  const data = await getCalendarData(year, month);
+  const { wearLogs, outfitLogs } = await getCalendarData(year, month);
 
-  return <CalendarView initialYear={year} initialMonth={month} initialData={data} />;
+  return <CalendarView initialYear={year} initialMonth={month} initialWearLogs={wearLogs} initialOutfitLogs={outfitLogs} />;
 }
