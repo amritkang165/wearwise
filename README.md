@@ -2,7 +2,7 @@
 
 <img src="https://img.shields.io/badge/👗-WearWise-pink?style=for-the-badge&labelColor=ffb6c1" />
 
-# ✂️ WearWise
+# ✂️ WearWise <3 >
 
 <img src="https://img.shields.io/badge/AI—Powered-Wardrobe-Management-pink?style=flat-square&labelColor=ffe4e1&color=ffb6c1" />
 
