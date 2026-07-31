@@ -48,10 +48,16 @@ export async function getDashboardData(): Promise<DashboardData> {
     where: { userId },
   });
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const wornToday = await prisma.outfitLog.count({
+    where: { userId, date: { gte: todayStart } },
+  });
+
   const checklist = [
     { id: "1", label: "Add your first item", done: totalItems > 0 },
     { id: "2", label: "Save your first outfit", done: outfitsSaved > 0 },
-    { id: "3", label: "Log an outfit you wore today", done: false },
+    { id: "3", label: "Log an outfit you wore today", done: wornToday > 0 },
     { id: "4", label: "Set your style preferences", done: false },
     { id: "5", label: "Try an AI outfit suggestion", done: false },
   ];
