@@ -2,6 +2,8 @@
 
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
+import { cloudinary } from "@/lib/cloudinary";
+import sharp from "sharp";
 
 interface NewItemInput {
   name: string;
@@ -11,6 +13,30 @@ interface NewItemInput {
   seasons: string[];
   occasions: string[];
   notes: string;
+  imageBase64?: string;
+  mimeType?: string;
+}
+
+async function uploadImage(imageBase64: string): Promise<string | null> {
+  if (!imageBase64) return null;
+  const buffer = Buffer.from(imageBase64, "base64");
+  const optimized = await sharp(buffer)
+    .resize(800, 800, { fit: "inside" })
+    .webp({ quality: 80 })
+    .toBuffer();
+
+  const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "wearwise" },
+      (error, result) => {
+        if (error || !result) reject(error);
+        else resolve(result);
+      }
+    );
+    stream.end(optimized);
+  });
+
+  return result.secure_url;
 }
 
 export async function createItemsAndOutfit(
@@ -23,6 +49,9 @@ export async function createItemsAndOutfit(
 
   const newItemIds: string[] = [];
   for (const item of newItems) {
+    const imageUrl = item.imageBase64
+      ? await uploadImage(item.imageBase64)
+      : null;
     const created = await prisma.clothingItem.create({
       data: {
         userId: session.user.id,
@@ -33,6 +62,7 @@ export async function createItemsAndOutfit(
         seasons: item.seasons,
         occasions: item.occasions,
         notes: item.notes || null,
+        images: imageUrl ? [imageUrl] : [],
       },
     });
     newItemIds.push(created.id);

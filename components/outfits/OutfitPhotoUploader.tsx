@@ -128,10 +128,11 @@ export function OutfitPhotoUploader() {
   };
 
   const save = async () => {
-    if (!outfitName.trim() || items.length === 0) return;
+    if (!outfitName.trim() || items.length === 0 || !image) return;
     setIsSaving(true);
 
     try {
+      const base64 = await compressImageToBase64(image.file);
       const existingIds: string[] = [];
       const newItems = items.filter((i): i is Extract<DetectedItem, { type: "new" }> => i.type === "new" && i.keep);
 
@@ -159,6 +160,8 @@ export function OutfitPhotoUploader() {
           ]
             .filter(Boolean)
             .join(" · "),
+          imageBase64: base64,
+          mimeType: image.file.type,
         }))
       );
 
