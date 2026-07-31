@@ -36,8 +36,8 @@ export function WardrobeClient({ items }: { items: Item[] }) {
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-6">
-        <div className="flex items-center gap-2 flex-1 h-9 px-3 rounded-[10px] border border-linen bg-paper text-ink text-[13px]">
+      <div className="flex items-center gap-2 flex-wrap mb-6">
+        <div className="flex items-center gap-2 flex-1 h-9 px-3 rounded-[10px] border border-linen bg-paper text-ink text-[13px] min-w-[200px]">
           <Search className="w-3.5 h-3.5 text-dust" strokeWidth={1.75} />
           <input
             type="text"
