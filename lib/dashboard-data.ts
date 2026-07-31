@@ -37,12 +37,12 @@ export async function getDashboardData(): Promise<DashboardData> {
     where: { userId },
   });
 
-  const wornThisWeek = await prisma.clothingItem.count({
-    where: {
-      userId,
-      wearCount: { gt: 0 },
-    },
+  const weekStart = startOfWeek();
+  const weekWearLogs = await prisma.wearLog.findMany({
+    where: { userId, date: { gte: weekStart } },
+    select: { clothingItemId: true },
   });
+  const wornThisWeek = new Set(weekWearLogs.map((l) => l.clothingItemId)).size;
 
   const outfitsSaved = await prisma.outfit.count({
     where: { userId },
