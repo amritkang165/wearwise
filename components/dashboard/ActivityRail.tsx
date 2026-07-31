@@ -1,3 +1,5 @@
+"use client";
+
 import { Shirt } from "lucide-react";
 
 interface ActivityEntry {
@@ -9,6 +11,20 @@ interface ActivityEntry {
 
 interface ActivityRailProps {
   entries: ActivityEntry[];
+}
+
+function formatWornOn(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const startOfThatDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((startOfToday - startOfThatDay) / 86400000);
+
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 7)
+    return d.toLocaleDateString("en-US", { weekday: "short" }).toLowerCase();
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function ActivityRail({ entries }: ActivityRailProps) {
@@ -58,7 +74,7 @@ export function ActivityRail({ entries }: ActivityRailProps) {
                     className="text-[11px] tracking-[0.06em] text-ash w-16 text-right"
                     style={{ fontFamily: "var(--font-label)" }}
                   >
-                    {entry.wornOn}
+                    {entry.wornOn && formatWornOn(entry.wornOn)}
                   </span>
                 </div>
               </div>

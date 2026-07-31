@@ -62,6 +62,22 @@ export async function getDashboardData(): Promise<DashboardData> {
     { id: "5", label: "Try an AI outfit suggestion", done: false },
   ];
 
+  const recentOutfitLogs = await prisma.outfitLog.findMany({
+    where: { userId },
+    orderBy: { date: "desc" },
+    take: 8,
+    select: {
+      id: true,
+      date: true,
+      outfit: {
+        select: {
+          name: true,
+          _count: { select: { items: true } },
+        },
+      },
+    },
+  });
+
   return {
     firstName,
     stats: {
@@ -70,6 +86,11 @@ export async function getDashboardData(): Promise<DashboardData> {
       wornThisWeek,
     },
     checklist,
-    recentActivity: [],
+    recentActivity: recentOutfitLogs.map((log) => ({
+      id: log.id,
+      outfitName: log.outfit.name,
+      wornOn: log.date.toISOString(),
+      itemCount: log.outfit._count.items,
+    })),
   };
 }
