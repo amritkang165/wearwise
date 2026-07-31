@@ -6,9 +6,11 @@ export interface DashboardData {
   firstName: string;
   stats: {
     totalItems: number;
+    totalWears: number;
     outfitsSaved: number;
     wornThisWeek: number;
   };
+  outfitLogDates: string[];
   checklist: { id: string; label: string; done: boolean }[];
   recentActivity: {
     id: string;
@@ -96,13 +98,22 @@ export async function getDashboardData(): Promise<DashboardData> {
     },
   });
 
+  const allOutfitLogs = await prisma.outfitLog.findMany({
+    where: { userId },
+    select: { date: true },
+  });
+
+  const totalWears = await prisma.wearLog.count({ where: { userId } });
+
   return {
     firstName,
     stats: {
       totalItems,
+      totalWears,
       outfitsSaved,
       wornThisWeek,
     },
+    outfitLogDates: allOutfitLogs.map((log) => log.date.toISOString()),
     checklist,
     recentActivity: recentOutfitLogs.map((log) => ({
       id: log.id,
