@@ -13,6 +13,7 @@ interface GettingStartedProps {
 
 export function GettingStarted({ items }: GettingStartedProps) {
   const completed = items.filter((i) => i.done).length;
+  if (completed === items.length) return null;
 
   return (
     <section className="bg-paper border border-linen rounded-[10px] p-6">
