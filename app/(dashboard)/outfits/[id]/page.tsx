@@ -10,6 +10,7 @@ import {
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma/client";
 import { OutfitActions } from "./outfit-actions";
+import { LocalDate } from "@/components/LocalDate";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -149,12 +150,7 @@ export default async function OutfitDetailPage({ params }: { params: Promise<{ i
             </p>
           </div>
           <p className="text-[22px] font-semibold text-ink">
-            {lastWorn
-              ? new Date(lastWorn).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })
-              : "Never"}
+            {lastWorn ? <LocalDate date={lastWorn} /> : "Never"}
           </p>
         </div>
       </div>
@@ -189,12 +185,7 @@ export default async function OutfitDetailPage({ params }: { params: Promise<{ i
               >
                 <div className="w-2 h-2 rounded-full bg-rose" />
                 <p className="text-[13px] text-ink">
-                  {new Date(log.date).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  <LocalDate date={log.date} format="long" />
                 </p>
               </div>
             ))}
