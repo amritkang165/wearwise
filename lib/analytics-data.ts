@@ -135,9 +135,9 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       };
     });
 
-  const mostWornCategoryEntry = categoryBreakdown.find(
-    (c) => c.wears > 0 && c.category
-  );
+  const mostWornCategoryEntry = [...categoryBreakdown]
+    .filter((c) => c.wears > 0)
+    .sort((a, b) => b.wears - a.wears)[0];
 
   return {
     stats: {
