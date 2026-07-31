@@ -54,11 +54,29 @@ export async function getDashboardData(): Promise<DashboardData> {
     where: { userId, date: { gte: todayStart } },
   });
 
+  const preferences = await prisma.stylePreferences.findUnique({
+    where: { userId },
+    select: {
+      colors: true,
+      brands: true,
+      fit: true,
+      formality: true,
+      style: true,
+    },
+  });
+  const hasPreferences = !!preferences && (
+    preferences.colors.length > 0 ||
+    preferences.brands.length > 0 ||
+    !!preferences.fit ||
+    !!preferences.formality ||
+    !!preferences.style
+  );
+
   const checklist = [
     { id: "1", label: "Add your first item", done: totalItems > 0 },
     { id: "2", label: "Save your first outfit", done: outfitsSaved > 0 },
     { id: "3", label: "Log an outfit you wore today", done: wornToday > 0 },
-    { id: "4", label: "Set your style preferences", done: false },
+    { id: "4", label: "Set your style preferences", done: hasPreferences },
     { id: "5", label: "Try an AI outfit suggestion", done: false },
   ];
 

@@ -37,7 +37,7 @@ export async function suggestTodayOutfit(
   const session = await requireSession();
   const userId = session.user.id;
 
-  const [items, wearLogs] = await Promise.all([
+  const [items, wearLogs, prefs] = await Promise.all([
     prisma.clothingItem.findMany({
       where: { userId },
       select: {
@@ -57,6 +57,7 @@ export async function suggestTodayOutfit(
       where: { userId },
       select: { clothingItemId: true, date: true },
     }),
+    prisma.stylePreferences.findUnique({ where: { userId } }),
   ]);
 
   if (items.length < 2) {
@@ -75,6 +76,24 @@ export async function suggestTodayOutfit(
   const weather = params.temperature
     ? `${Math.round(params.temperature)}° today`
     : "unknown temperature";
+
+  const preferenceText =
+    prefs &&
+    (prefs.colors.length > 0 ||
+      prefs.brands.length > 0 ||
+      prefs.fit ||
+      prefs.formality ||
+      prefs.style)
+      ? [
+          prefs.colors.length > 0 ? `Favorite colors: ${prefs.colors.join(", ")}` : "",
+          prefs.brands.length > 0 ? `Preferred brands: ${prefs.brands.join(", ")}` : "",
+          prefs.fit ? `Preferred fit: ${prefs.fit}` : "",
+          prefs.formality ? `Preferred formality: ${prefs.formality}` : "",
+          prefs.style ? `Style vibe: ${prefs.style}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : null;
 
   const candidates = items
     .filter((i) => {
@@ -119,6 +138,7 @@ Weather: ${weather}
 ${params.occasion ? `Occasion: ${params.occasion}` : "Occasion: everyday / casual"}
 Today's date: ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
 
+${preferenceText ? `The user's style preferences:\n${preferenceText}\n` : ""}
 Available clothing items (each with its id, colors, total wears, and days since last worn; -1 means never worn):
 ${itemList}
 
