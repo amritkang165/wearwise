@@ -3,6 +3,7 @@ import { StatTag } from "@/components/dashboard/StatTag";
 import { GettingStarted } from "@/components/dashboard/GettingStarted";
 import { ActivityRail } from "@/components/dashboard/ActivityRail";
 import { QuickAddButton } from "@/components/dashboard/QuickAddButton";
+import { WhatToWear } from "@/components/dashboard/WhatToWear";
 import { getDashboardData } from "@/lib/dashboard-data";
 
 function greeting() {
@@ -48,6 +49,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex flex-col gap-6">
+        <WhatToWear />
         <GettingStarted items={data.checklist} />
         <ActivityRail entries={data.recentActivity} />
       </div>
