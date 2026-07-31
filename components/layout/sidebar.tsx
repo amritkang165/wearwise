@@ -8,6 +8,7 @@ import {
   Palette,
   Calendar,
   BarChart3,
+  SlidersHorizontal,
   LogOut,
   X,
   Sparkles,
@@ -21,6 +22,7 @@ const nav = [
   { label: "Outfits", href: "/outfits", icon: Palette },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
+  { label: "Settings", href: "/settings", icon: SlidersHorizontal },
 ];
 
 interface SidebarProps {
