@@ -11,10 +11,12 @@ import {
   RefreshCw,
   Shirt,
   Camera,
+  Scissors,
 } from "lucide-react";
 import { analyzeAndMatch, type AnalyzedClothing } from "@/actions/analyze";
 import { createItemsAndOutfit } from "@/actions/create-items-and-outfit";
 import { compressImageToBase64 } from "@/lib/compress-image";
+import { CropModal } from "./CropModal";
 
 type Step = "upload" | "analyzing" | "review";
 
@@ -36,6 +38,7 @@ type DetectedItem =
       image: UploadedImage;
       data: AnalyzedClothing;
       keep: boolean;
+      cropBase64?: string;
     };
 
 export function OutfitPhotoUploader() {
@@ -47,6 +50,7 @@ export function OutfitPhotoUploader() {
   const [isSaving, setIsSaving] = useState(false);
   const [analyzingDetail, setAnalyzingDetail] = useState("");
   const [outfitName, setOutfitName] = useState("");
+  const [cropIndex, setCropIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback((file: File) => {
@@ -123,6 +127,16 @@ export function OutfitPhotoUploader() {
     );
   };
 
+  const setCrop = (index: number, base64: string) => {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index || item.type !== "new") return item;
+        return { ...item, cropBase64: base64 };
+      })
+    );
+    setCropIndex(null);
+  };
+
   const removeItem = (index: number) => {
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
@@ -160,8 +174,8 @@ export function OutfitPhotoUploader() {
           ]
             .filter(Boolean)
             .join(" · "),
-          imageBase64: base64,
-          mimeType: image.file.type,
+          imageBase64: item.cropBase64 ?? base64,
+          mimeType: item.cropBase64 ? "image/jpeg" : image.file.type,
         }))
       );
 
@@ -330,6 +344,12 @@ export function OutfitPhotoUploader() {
                 <div className="w-full h-full bg-linen flex items-center justify-center">
                   <Shirt className="w-5 h-5 text-ash" strokeWidth={1.5} />
                 </div>
+              ) : item.cropBase64 ? (
+                <img
+                  src={`data:image/jpeg;base64,${item.cropBase64}`}
+                  alt={item.data.name}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <img
                   src={item.image.preview}
@@ -351,16 +371,39 @@ export function OutfitPhotoUploader() {
                   </p>
                 </>
               ) : (
-                <input
-                  value={item.data.name}
-                  onChange={(e) => updateItemName(index, e.target.value)}
-                  className="text-[13px] font-medium text-ink bg-transparent outline-none w-full"
-                />
+                <>
+                  <input
+                    value={item.data.name}
+                    onChange={(e) => updateItemName(index, e.target.value)}
+                    className="text-[13px] font-medium text-ink bg-transparent outline-none w-full"
+                  />
+                  {item.cropBase64 && (
+                    <p className="text-[11px] text-ash flex items-center gap-1 mt-0.5">
+                      <Check className="w-3 h-3 text-rose" />
+                      Cropped
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
             {item.type === "new" ? (
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => setCropIndex(index)}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                    item.cropBase64
+                      ? "bg-rose/10 text-rose"
+                      : "bg-canvas text-ash hover:text-ink"
+                  }`}
+                  title={
+                    item.cropBase64
+                      ? "Re-crop photo"
+                      : "Crop this item's photo"
+                  }
+                >
+                  <Scissors className="w-3.5 h-3.5" strokeWidth={1.75} />
+                </button>
                 <button
                   onClick={() => toggleNew(index)}
                   className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
@@ -413,6 +456,15 @@ export function OutfitPhotoUploader() {
           Cancel
         </button>
       </div>
+
+      {cropIndex !== null && items[cropIndex]?.type === "new" && (
+        <CropModal
+          imageUrl={items[cropIndex].image.preview}
+          itemName={items[cropIndex].data.name}
+          onCancel={() => setCropIndex(null)}
+          onCrop={(base64) => setCrop(cropIndex, base64)}
+        />
+      )}
     </div>
   );
 }
