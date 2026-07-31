@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Shirt,
-  Sparkles,
+  Palette,
   Calendar,
   BarChart3,
   LogOut,
@@ -17,7 +17,7 @@ import { signOut } from "@/lib/auth-client";
 const nav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Wardrobe", href: "/wardrobe", icon: Shirt },
-  { label: "Outfits", href: "/outfits", icon: Sparkles },
+  { label: "Outfits", href: "/outfits", icon: Palette },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
 ];
