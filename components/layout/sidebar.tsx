@@ -10,6 +10,7 @@ import {
   BarChart3,
   LogOut,
   X,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth-client";
