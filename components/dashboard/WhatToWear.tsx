@@ -7,6 +7,7 @@ import {
   Loader2,
   Shirt,
   ThermometerSun,
+  MapPin,
   CalendarDays,
   Check,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import {
   saveSuggestedOutfit,
   type TodayOutfitResult,
 } from "@/actions/what-to-wear";
+import { getCurrentWeather } from "@/actions/weather";
 
 const QUICK_OCCASIONS = ["Everyday", "Work", "Date Night", "Brunch", "Workout"];
 
@@ -24,18 +26,20 @@ export function WhatToWear() {
   const [temperature, setTemperature] = useState("");
   const [result, setResult] = useState<TodayOutfitResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
 
   const season = getSeason();
 
-  const handleSuggest = async () => {
+  const runSuggestion = async (temperature?: number, condition?: string) => {
     setIsLoading(true);
     setError("");
     try {
       const res = await suggestTodayOutfit({
         occasion: occasion || undefined,
-        temperature: temperature ? Number(temperature) : undefined,
+        temperature: temperature ?? (temperatureInput() ?? undefined),
+        condition,
         currentSeason: season,
       });
       setResult(res);
@@ -44,6 +48,44 @@ export function WhatToWear() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const temperatureInput = () =>
+    temperature === "" ? undefined : Number(temperature);
+
+  const handleSuggest = async () => {
+    await runSuggestion(temperatureInput(), undefined);
+  };
+
+  const handleLocate = () => {
+    if (!("geolocation" in navigator)) {
+      setError("Location isn't available on this device.");
+      return;
+    }
+    setIsLocating(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const weather = await getCurrentWeather(
+            pos.coords.latitude,
+            pos.coords.longitude
+          );
+          if (weather.temperature != null) {
+            setTemperature(String(weather.temperature));
+            await runSuggestion(weather.temperature, weather.condition ?? undefined);
+          } else {
+            setError("Couldn't get weather for your location.");
+          }
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      () => {
+        setIsLocating(false);
+        setError("Location not available — enter the temperature manually.");
+      }
+    );
   };
 
   const handleSave = async () => {
@@ -120,6 +162,18 @@ export function WhatToWear() {
                   className="flex-1 bg-transparent outline-none text-[13px] text-ink placeholder:text-ash"
                 />
               </div>
+              <button
+                onClick={handleLocate}
+                disabled={isLocating}
+                title="Use my location for live weather"
+                className="h-9 w-9 rounded-lg border border-linen bg-paper text-ash hover:text-rose hover:border-rose/30 flex items-center justify-center disabled:opacity-50 transition-all"
+              >
+                {isLocating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <MapPin className="w-3.5 h-3.5" strokeWidth={1.75} />
+                )}
+              </button>
               <button
                 onClick={handleSuggest}
                 disabled={isLoading}

@@ -28,6 +28,7 @@ export interface TodayOutfitResult {
 interface SuggestParams {
   occasion?: string;
   temperature?: number;
+  condition?: string;
   currentSeason?: string;
 }
 
@@ -74,8 +75,8 @@ export async function suggestTodayOutfit(
 
   const season = params.currentSeason ?? currentSeasonFromDate();
   const weather = params.temperature
-    ? `${Math.round(params.temperature)}° today`
-    : "unknown temperature";
+    ? `${params.condition ? params.condition + ", " : ""}${Math.round(params.temperature)}° today`
+    : params.condition || "unknown temperature";
 
   const preferenceText =
     prefs &&
